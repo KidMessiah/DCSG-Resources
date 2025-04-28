@@ -1,0 +1,65 @@
+[
+  {
+    "title": "Local MP4 Video",
+    "description": "A local video file.",
+    "path": "videos/bearger.mp4",
+    "category": "Viidides",
+    "type": "video"
+  },
+  {
+    "title": "Local MP4 Video",
+    "description": "A local video file.",
+    "path": "videos/bearger.mp4",
+    "category": "Viidides",
+    "type": "video"
+  },
+  {
+    "title": "Local MP4 Video",
+    "description": "A local video file.",
+    "path": "videos/bearger.mp4",
+    "category": "Viidides",
+    "type": "video"
+  },
+  {
+    "title": "Youtube Video",
+    "description": "A local video file.",
+    "path": "https://www.youtube.com/embed/1g1bJ7PYz_0",
+    "category": "Videos",
+    "type": "video"
+  },
+  {
+    "title": "Sample YouTube Video",
+    "description": "An example YouTube video.",
+    "path": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "category": "Videos",
+    "type": "video"
+  },
+  {
+    "title": "Local MP4 Video",
+    "description": "A local video file.",
+    "path": "videos/sample.mp4",
+    "category": "Videos",
+    "type": "video"
+  },
+  {
+    "title": "Sample PDF",
+    "description": "An example PDF document.",
+    "path": "pdfs/Illrigger v2.4.pdf",
+    "category": "PDFs",
+    "type": "pdf"
+  },
+  {
+    "title": "Rulebook",
+    "description": "Rules for the game.",
+    "path": "pdfs/A Hole in the Ground - Asnar The Last Kingdom.pdf",
+    "category": "Rules",
+    "type": "pdf"
+  },
+  {
+    "title": "Official Website",
+    "description": "Visit the official site.",
+    "path": "https://example.com",
+    "category": "Websites",
+    "type": "website"
+  }
+]
