@@ -288,19 +288,38 @@ async function renderHomepageJsList() {
     if (!Array.isArray(jsList)) return;
     const container = document.getElementById('homepage-js-list');
     if (container) {
-      container.innerHTML = `
-        <h3>Homepage JavaScript Files</h3>
-        <ul>
-          ${jsList.map(jsFile => `<li>${escapeHtml(jsFile)}</li>`).join('')}
-        </ul>
-      `;
+      container.innerHTML = `<div id="homepage-js-widgets"></div>`;
     }
+    const widgetsDiv = document.getElementById('homepage-js-widgets');
     for (const jsFile of jsList) {
-      if (![...document.scripts].some(s => s.src && s.src.endsWith(jsFile))) {
+      // Create a container for each widget
+      const widgetContainer = document.createElement('div');
+      widgetContainer.className = 'homepage-js-widget';
+      widgetsDiv && widgetsDiv.appendChild(widgetContainer);
+
+      // Dynamically load the JS file
+      await new Promise((resolve, reject) => {
+        if ([...document.scripts].some(s => s.src && s.src.endsWith(jsFile))) {
+          resolve();
+          return;
+        }
         const script = document.createElement('script');
         script.src = jsFile;
         script.async = false;
+        script.onload = resolve;
+        script.onerror = reject;
         document.body.appendChild(script);
+      });
+
+      // If the JS file exposes a renderHomepageWidget function, call it
+      if (typeof window.renderHomepageWidget === 'function') {
+        try {
+          window.renderHomepageWidget(widgetContainer);
+        } catch (e) {
+          widgetContainer.innerHTML = `<div style="color:red;">Error running widget: ${escapeHtml(e.message)}</div>`;
+        }
+        // Remove the global to avoid conflicts
+        delete window.renderHomepageWidget;
       }
     }
   } catch {}
