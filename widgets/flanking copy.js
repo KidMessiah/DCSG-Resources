@@ -19,13 +19,17 @@ if (typeof PIXI === 'undefined') {
 function createFlankingWidget(container, options = {}) {
   // --- Constants ---
   const GRID_SIZE = 20;
-  const COLORS = { Ally: 0x2ecc40, Enemy: 0xe74c3c, Neutral: 0x888888 };
-  const PALETTE = [1, 2, 3, 4];
-  const BG_COLOR = 0x222222;
-  const INSTR_TEXT = "Drag a token onto the grid. After placing, choose Ally or Enemy. Hover over tokens to see flanking bonuses. Right-click for more options.";
-  const PALETTE_MARGIN = 12, PALETTE_BTN = 44, PALETTE_GAP = 12;
+  // Updated team colors for white background
+  const COLORS = { Ally: 0x00FF00, Enemy: 0xd32f2f, Neutral: 0xbdbdbd };
+  const PALETTE = [1, 2, 3, 4, 5, 6];
+  // Set background to white
+  const BG_COLOR = 0xffffff;
+  const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, or change it's team.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.";
+  // Palette and UI constants - reduce margin between palette and grid
+  const PALETTE_MARGIN = 10, PALETTE_BTN = 44, PALETTE_GAP = 8;
   const PROMPT_W = 220, PROMPT_H = 110;
   const CONTEXT_MENU_W = 120, CONTEXT_MENU_ITEM_H = 30;
+  const COLUMN_MARGIN = 10;
 
   // --- State ---
   let tokens = [];
@@ -33,11 +37,11 @@ function createFlankingWidget(container, options = {}) {
   let draggingToken = null, nextTokenId = 1;
   let teamPromptToken = null;
   let cellPx = 32, gridOrigin = {x:0, y:0};
-  let tempGhost = null; // For palette drag ghost
-  let contextMenu = null; // For right-click menu
-  let contextMenuTarget = null; // Token being context-menued
+  let tempGhost = null;
+  let contextMenu = null;
+  let contextMenuTarget = null;
   
-  // Track UI state to avoid conflicts
+  // UI state management
   const UIState = {
     IDLE: 'idle',
     DRAGGING: 'dragging',
@@ -48,169 +52,108 @@ function createFlankingWidget(container, options = {}) {
   let currentState = UIState.IDLE;
 
   // --- PixiJS Setup ---
-  const width = options.width || 600, height = options.height || 700;
+  const initialWidth = container.clientWidth || options.width || 600;
+  const initialHeight = container.clientHeight || options.height || 800;
+  
   const app = new PIXI.Application({
-    width, height, backgroundColor: BG_COLOR,
-    resolution: window.devicePixelRatio || 1, autoDensity: true, antialias: true,
+    width: initialWidth,
+    height: initialHeight,
+    backgroundColor: BG_COLOR,
+    resolution: window.devicePixelRatio || 1,
+    autoDensity: true,
+    antialias: true,
   });
+  
+  app.view.style.display = 'block';
+  app.view.style.width = '100%';
+  app.view.style.height = '100%';
   container.appendChild(app.view);
   
-  // Prevent default context menu on the entire canvas
-  app.view.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-  });
+  // Prevent default context menu
+  app.view.addEventListener('contextmenu', e => e.preventDefault());
 
   // --- Layers ---
   const gridLayer = new PIXI.Container();
   const tokenLayer = new PIXI.Container();
   const overlayLayer = new PIXI.Container();
   const promptLayer = new PIXI.Container();
-  const menuLayer = new PIXI.Container(); // Layer for context menu
+  const menuLayer = new PIXI.Container();
+
+  // Enable sortable children for proper z-indexing
+  app.stage.sortableChildren = true;
+  overlayLayer.sortableChildren = true;
+
+  // Set z-index values for consistent stacking
+  gridLayer.zIndex = 10;
+  tokenLayer.zIndex = 20;
+  overlayLayer.zIndex = 30;
+  promptLayer.zIndex = 40;
+  menuLayer.zIndex = 50;
+
   app.stage.addChild(gridLayer, tokenLayer, overlayLayer, promptLayer, menuLayer);
 
-  // --- Instructions ---
-  const instr = new PIXI.Text(INSTR_TEXT, {fontSize: 16, fill: '#fff', wordWrap: true, wordWrapWidth: width-20});
-  instr.x = 10; instr.y = 10;
+  // --- Instructions & Titles ---
+  const leftTitle = new PIXI.Text("Flanking Tool", {
+    fontSize: 22,
+    fill: '#222', // dark text for white bg
+    fontWeight: 'bold'
+  });
+  leftTitle.style.fontWeight = 'bold';
+  app.stage.addChild(leftTitle);
+
+  const rightTitle = new PIXI.Text("Flanking Rules", {
+    fontSize: 22,
+    fill: '#222',
+    fontWeight: 'bold'
+  });
+  rightTitle.style.fontWeight = 'bold';
+  app.stage.addChild(rightTitle);
+
+  const instr = new PIXI.Text(INSTR_TEXT, {
+    fontSize: 16, 
+    fill: '#333', // darker text
+    wordWrap: true,
+    lineHeight: 22,
+    align: 'left'
+  });
   app.stage.addChild(instr);
+  
+  // Updated right column text with DnD 5e style rules
+  const rightText = new PIXI.Text(
+    "Variant Flanking - Small\n\n" +
+    "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n" +
+    "• When you have an ally on the opposite side of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
+    "• For each additional ally on any other side of the creature, you gain an additional +1 bonus (maximum +4).\n\n" +
+    "• You lose all flanking bonuses if you are being flanked yourself, as your attention is divided.\n\n" +
+    "• Creatures with blindsight, tremorsense, or truesight are immune to flanking, as their heightened senses prevent them from being caught off guard.", {
+    fontSize: 16,
+    fill: '#333',
+    wordWrap: true,
+    lineHeight: 22,
+    align: 'left'
+  });
+  
+  app.stage.addChild(rightText);
+
+  // Example Scenarios Button Container
+  const exampleContainer = new PIXI.Container();
+  app.stage.addChild(exampleContainer);
 
   // --- Palette ---
-  const paletteY = instr.y + instr.height + PALETTE_MARGIN;
   const palette = new PIXI.Container();
-  palette.x = 10; palette.y = paletteY;
   app.stage.addChild(palette);
-  PALETTE.forEach((size, i) => {
-    const btn = new PIXI.Graphics();
-    btn.beginFill(0x444444).drawRoundedRect(0, 0, PALETTE_BTN, PALETTE_BTN, 8).endFill();
-    btn.lineStyle(2, 0xffffff, 0.7).drawRoundedRect(0, 0, PALETTE_BTN, PALETTE_BTN, 8);
-    btn.x = i * (PALETTE_BTN + PALETTE_GAP);
-    btn.interactive = true; btn.buttonMode = true;
-
-    // Draw token preview
-    btn.beginFill(COLORS.Neutral).drawRect(10, 10, size*8, size*8).endFill();
-    const label = new PIXI.Text(`${size}x${size}`, {fontSize: 14, fill: '#fff'});
-    label.x = (PALETTE_BTN-label.width)/2; label.y = PALETTE_BTN-18;
-    btn.addChild(label);
-    palette.addChild(btn);
-
-    // --- Drag from palette ---
-    btn.on('pointerdown', (event) => {
-      if (currentState !== UIState.IDLE) return;
-      
-      event.data.originalEvent.preventDefault();
-      currentState = UIState.DRAGGING;
-      
-      // Create ghost token
-      let ghost = createTokenGraphics(size, COLORS.Neutral);
-      ghost.alpha = 0.7;
-      ghost.zIndex = 1000;
-      tokenLayer.addChild(ghost);
-      tempGhost = ghost;
-
-      const onPointerMove = (e) => {
-        const rect = app.view.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (app.view.width / rect.width);
-        const y = (e.clientY - rect.top) * (app.view.height / rect.height);
-        
-        // Determine which grid cell the cursor is over (important for large tokens)
-        const {col: cursorCol, row: cursorRow} = pxToGrid(x, y);
-        
-        // Calculate the top-left corner of a token that would be centered on this cursor position
-        // For even-sized tokens (2x2, 4x4), we need to offset by half a cell
-        const tokenRow = size % 2 === 0 ? cursorRow - (size/2) + 0.5 : cursorRow - Math.floor(size/2);
-        const tokenCol = size % 2 === 0 ? cursorCol - (size/2) + 0.5 : cursorCol - Math.floor(size/2);
-        
-        // Convert to rounded grid coordinates
-        const row = Math.round(tokenRow);
-        const col = Math.round(tokenCol);
-        
-        // Check if this position would be valid
-        const isInGrid = isWithinGrid(row, col, size);
-        const isValid = isInGrid && isAreaFree(row, col, size);
-        
-        if (isInGrid) {
-            // Snap directly to grid cell
-            const {x: snapX, y: snapY} = gridToPx(row, col);
-            ghost.x = snapX;
-            ghost.y = snapY;
-            
-            // Visual feedback based on validity
-            ghost.alpha = isValid ? 0.8 : 0.4;
-            ghost.tint = isValid ? 0xffffff : 0xff0000;
-        } else {
-            // Outside grid - follow cursor with center of token
-            ghost.x = x - (size * cellPx / 2);
-            ghost.y = y - (size * cellPx / 2);
-            ghost.alpha = 0.4;
-            ghost.tint = 0xff0000;
-        }
-      };
-      
-      const onPointerUp = (e) => {
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
-        
-        // Reset tint
-        ghost.tint = 0xffffff;
-        
-        const rect = app.view.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (app.view.width / rect.width);
-        const y = (e.clientY - rect.top) * (app.view.height / rect.height);
-        
-        // Get grid cell under cursor
-        const {col: cursorCol, row: cursorRow} = pxToGrid(x, y);
-        
-        // Calculate token position that would center it on cursor
-        const tokenRow = size % 2 === 0 ? cursorRow - (size/2) + 0.5 : cursorRow - Math.floor(size/2);
-        const tokenCol = size % 2 === 0 ? cursorCol - (size/2) + 0.5 : cursorCol - Math.floor(size/2);
-        
-        // Round to get final grid position
-        const row = Math.round(tokenRow);
-        const col = Math.round(tokenCol);
-        
-        tokenLayer.removeChild(ghost);
-        tempGhost = null;
-        
-        if (isWithinGrid(row, col, size) && isAreaFree(row, col, size)) {
-          addToken(size, row, col);
-        }
-        
-        currentState = UIState.IDLE;
-      };
-
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-    });
-  });
-
-  // --- Grid Placement ---
-  const gridY = palette.y + PALETTE_BTN + PALETTE_MARGIN;
-  function updateGridMetrics() {
-    const availW = width-20, availH = height-gridY-20;
-    cellPx = Math.floor(Math.min(availW, availH) / GRID_SIZE);
-    gridOrigin.x = 10 + Math.floor((availW - cellPx*GRID_SIZE)/2);
-    gridOrigin.y = gridY + Math.floor((availH - cellPx*GRID_SIZE)/2);
+  
+  // --- Helper Functions ---
+  function calculateColumnSizes(totalWidth) {
+    const thirdWidth = Math.floor(totalWidth / 3);
+    return {
+      leftColumn: thirdWidth - COLUMN_MARGIN,
+      centerColumn: thirdWidth,
+      rightColumn: thirdWidth - COLUMN_MARGIN
+    };
   }
-  updateGridMetrics();
 
-  // --- Draw Grid ---
-  function drawGrid() {
-    gridLayer.removeChildren();
-    updateGridMetrics();
-    const g = new PIXI.Graphics();
-    g.lineStyle(1, 0x888888, 1);
-    for (let i = 0; i <= GRID_SIZE; ++i) {
-      g.moveTo(gridOrigin.x + i * cellPx, gridOrigin.y)
-       .lineTo(gridOrigin.x + i * cellPx, gridOrigin.y + GRID_SIZE * cellPx);
-      g.moveTo(gridOrigin.x, gridOrigin.y + i * cellPx)
-       .lineTo(gridOrigin.x + GRID_SIZE * cellPx, gridOrigin.y + i * cellPx);
-    }
-    gridLayer.addChild(g);
-  }
-  drawGrid();
-
-  // --- Helpers ---
   function gridToPx(row, col) {
-    // Make sure we're returning exact pixel coordinates for accurate grid snapping
     return { 
       x: Math.round(gridOrigin.x + col * cellPx), 
       y: Math.round(gridOrigin.y + row * cellPx) 
@@ -218,7 +161,6 @@ function createFlankingWidget(container, options = {}) {
   }
   
   function pxToGrid(x, y) {
-    // Adjust for grid origin to ensure accurate conversion
     return {
       col: Math.floor((x - gridOrigin.x) / cellPx),
       row: Math.floor((y - gridOrigin.y) / cellPx)
@@ -244,32 +186,228 @@ function createFlankingWidget(container, options = {}) {
         }
   }
 
-  // --- Token Creation ---
+  function drawGrid() {
+    gridLayer.removeChildren();
+    const g = new PIXI.Graphics();
+    g.lineStyle(1, 0xcccccc, 1); // light gray grid lines
+    for (let i = 0; i <= GRID_SIZE; ++i) {
+      g.moveTo(gridOrigin.x + i * cellPx, gridOrigin.y)
+       .lineTo(gridOrigin.x + i * cellPx, gridOrigin.y + GRID_SIZE * cellPx);
+      g.moveTo(gridOrigin.x, gridOrigin.y + i * cellPx)
+       .lineTo(gridOrigin.x + GRID_SIZE * cellPx, gridOrigin.y + i * cellPx);
+    }
+    gridLayer.addChild(g);
+  }
+
+  // --- Layout Management ---
+  function updateLayout() {
+    // Clear previous column backgrounds
+    app.stage.children.forEach(child => {
+      if (child instanceof PIXI.Graphics && 
+          (child.columnBackground === 'left' || child.columnBackground === 'right')) {
+        app.stage.removeChild(child);
+      }
+    });
+    
+    const availableWidth = app.screen.width;
+    const availableHeight = app.screen.height;
+    
+    // Calculate columns based on 1/3 division
+    const columns = calculateColumnSizes(availableWidth);
+    
+    const LEFT_COLUMN_WIDTH = columns.leftColumn;
+    const RIGHT_COLUMN_WIDTH = columns.rightColumn;
+    const CENTER_COLUMN_WIDTH = columns.centerColumn;
+    
+    // Position the palette at the top center
+    const leftEdge = LEFT_COLUMN_WIDTH + COLUMN_MARGIN;
+    updatePaletteLayout(CENTER_COLUMN_WIDTH, leftEdge);
+    
+    // Calculate grid metrics - reduce space between palette and grid
+    const paletteBottom = palette.y + palette.height + 10; // Reduced margin
+    const gridAreaHeight = availableHeight - paletteBottom - 20;
+    
+    updateGridMetrics(CENTER_COLUMN_WIDTH, gridAreaHeight, paletteBottom, leftEdge);
+    
+    // Create column backgrounds (light gray)
+    const leftBg = new PIXI.Graphics();
+    leftBg.beginFill(0xffffff, 1)
+      .drawRect(0, 0, LEFT_COLUMN_WIDTH, app.screen.height)
+      .endFill();
+    leftBg.columnBackground = 'left';
+    app.stage.addChildAt(leftBg, 0);
+    
+    const rightColumnX = leftEdge + CENTER_COLUMN_WIDTH + COLUMN_MARGIN;
+    const rightBg = new PIXI.Graphics();
+    rightBg.beginFill(0xffffff, 1)
+      .drawRect(rightColumnX, 0, RIGHT_COLUMN_WIDTH, app.screen.height)
+      .endFill();
+    rightBg.columnBackground = 'right';
+    app.stage.addChildAt(rightBg, 0);
+    
+    // Position text elements
+    instr.x = 10;
+    instr.y = 48;
+    instr.style.wordWrapWidth = LEFT_COLUMN_WIDTH - 20;
+
+    leftTitle.x = 10;
+    leftTitle.y = 10;
+
+    rightTitle.x = rightColumnX + 10;
+    rightTitle.y = 10;
+
+    rightText.x = rightColumnX + 10;
+    rightText.y = rightTitle.y + rightTitle.height + 8;
+    rightText.style.wordWrapWidth = RIGHT_COLUMN_WIDTH - 20;
+
+    // Position and setup example buttons
+    setupExampleButtons(rightColumnX, CENTER_COLUMN_WIDTH, rightText.y + rightText.height + 20, RIGHT_COLUMN_WIDTH);
+  }
+
+  function updatePaletteLayout(centerWidth, leftEdge) {
+    palette.removeChildren();
+    
+    // Calculate palette buttons to fit the column width
+    const availableWidth = centerWidth - (PALETTE_MARGIN * 2);
+    const buttonSize = Math.min(PALETTE_BTN, 
+      Math.floor((availableWidth - (PALETTE_GAP * (PALETTE.length - 1))) / PALETTE.length));
+    const totalPaletteWidth = (buttonSize * PALETTE.length) + (PALETTE_GAP * (PALETTE.length - 1));
+    
+    palette.y = 10;
+    palette.x = leftEdge + ((centerWidth - totalPaletteWidth) / 2);
+    
+    PALETTE.forEach((size, i) => {
+      const btn = new PIXI.Graphics();
+      btn.beginFill(0xf5f5f5).drawRoundedRect(0, 0, buttonSize, buttonSize, 8).endFill();
+      btn.lineStyle(2, 0x888888, 0.7).drawRoundedRect(0, 0, buttonSize, buttonSize, 8);
+      btn.x = i * (buttonSize + PALETTE_GAP);
+      btn.y = 0;
+      btn.interactive = true; 
+      btn.buttonMode = true;
+
+      // Remove token preview square, only show centered label
+      const label = new PIXI.Text(`${size}x${size}`, {fontSize: 14, fill: '#222'});
+      label.x = (buttonSize-label.width)/2; 
+      label.y = (buttonSize-label.height)/2;
+      btn.addChild(label);
+      palette.addChild(btn);
+
+      // Palette drag handler
+      btn.on('pointerdown', (event) => {
+        if (currentState !== UIState.IDLE) return;
+      
+        event.data.originalEvent.preventDefault();
+        currentState = UIState.DRAGGING;
+        
+        // Create ghost token
+        let ghost = createTokenGraphics(size, COLORS.Neutral);
+        ghost.alpha = 0.7;
+        ghost.zIndex = 1000; // Ensure ghost appears above other tokens
+        tokenLayer.addChild(ghost);
+        tempGhost = ghost;
+
+        const onPointerMove = (e) => {
+          const rect = app.view.getBoundingClientRect();
+          const x = (e.clientX - rect.left) * (app.view.width / rect.width);
+          const y = (e.clientY - rect.top) * (app.view.height / rect.height);
+          
+          const {col: cursorCol, row: cursorRow} = pxToGrid(x, y);
+          
+          // Calculate token position based on cursor
+          const tokenRow = size % 2 === 0 ? cursorRow - (size/2) + 0.5 : cursorRow - Math.floor(size/2);
+          const tokenCol = size % 2 === 0 ? cursorCol - (size/2) + 0.5 : cursorCol - Math.floor(size/2);
+          
+          const row = Math.round(tokenRow);
+          const col = Math.round(tokenCol);
+          
+          const isInGrid = isWithinGrid(row, col, size);
+          const isValid = isInGrid && isAreaFree(row, col, size);
+          
+          if (isInGrid) {
+            const {x: snapX, y: snapY} = gridToPx(row, col);
+            ghost.x = snapX;
+            ghost.y = snapY;
+            ghost.alpha = isValid ? 0.8 : 0.4;
+            ghost.tint = isValid ? 0xffffff : 0xff0000;
+          } else {
+            ghost.x = x - (size * cellPx / 2);
+            ghost.y = y - (size * cellPx / 2);
+            ghost.alpha = 0.4;
+            ghost.tint = 0xff0000;
+          }
+        };
+        
+        const onPointerUp = (e) => {
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+          
+          ghost.tint = 0xffffff;
+          
+          const rect = app.view.getBoundingClientRect();
+          const x = (e.clientX - rect.left) * (app.view.width / rect.width);
+          const y = (e.clientY - rect.top) * (app.view.height / rect.height);
+          
+          const {col: cursorCol, row: cursorRow} = pxToGrid(x, y);
+          
+          const tokenRow = size % 2 === 0 ? cursorRow - (size/2) + 0.5 : cursorRow - Math.floor(size/2);
+          const tokenCol = size % 2 === 0 ? cursorCol - (size/2) + 0.5 : cursorCol - Math.floor(size/2);
+          
+          const row = Math.round(tokenRow);
+          const col = Math.round(tokenCol);
+          
+          tokenLayer.removeChild(ghost);
+          tempGhost = null;
+          
+          if (isWithinGrid(row, col, size) && isAreaFree(row, col, size)) {
+            addToken(size, row, col);
+          }
+          
+          currentState = UIState.IDLE;
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      });
+    });
+  }
+  
+  function updateGridMetrics(centerWidth, gridAreaHeight, paletteBottom, leftEdge) {
+    const maxGridWidth = centerWidth;
+    const maxGridHeight = gridAreaHeight;
+    
+    cellPx = Math.floor(Math.min(maxGridWidth / GRID_SIZE, maxGridHeight / GRID_SIZE));
+    
+    const gridWidth = cellPx * GRID_SIZE;
+    const gridHeight = cellPx * GRID_SIZE;
+    
+    gridOrigin.x = leftEdge + ((centerWidth - gridWidth) / 2);
+    gridOrigin.y = paletteBottom + 10; // Reduced vertical gap
+  }
+
+  // --- Token Management ---
   function createTokenGraphics(size, color, label) {
     const g = new PIXI.Graphics();
     g.beginFill(color).drawRect(0, 0, size * cellPx, size * cellPx).endFill();
-    g.lineStyle(2, 0xffffff, 0.7).drawRect(0, 0, size * cellPx, size * cellPx);
+    g.lineStyle(2, 0x222222, 0.7).drawRect(0, 0, size * cellPx, size * cellPx);
     
     if (label) {
       const text = new PIXI.Text(label, {
         fontSize: Math.max(16, Math.floor(cellPx * 0.4)), 
-        fill: color === COLORS.Ally ? '#000' : '#fff',
+        fill: color === COLORS.Ally ? '#fff' : '#fff',
         fontWeight: 'bold'
       });
       text.x = (size * cellPx - text.width) / 2;
       text.y = (size * cellPx - text.height) / 2;
       g.addChild(text);
-    }
-    
-    // Add a visual cue that tokens are draggable
-    if (!label) { // For neutral tokens from palette
-        const dragHint = new PIXI.Text("✥", {
-            fontSize: Math.max(16, Math.floor(cellPx * 0.3)),
-            fill: '#ffffff'
-        });
-        dragHint.x = (size * cellPx - dragHint.width) / 2;
-        dragHint.y = (size * cellPx - dragHint.height) / 2;
-        g.addChild(dragHint);
+    } else {
+      // For neutral tokens, add drag hint
+      const dragHint = new PIXI.Text("✥", {
+        fontSize: Math.max(16, Math.floor(cellPx * 0.3)),
+        fill: '#888888'
+      });
+      dragHint.x = (size * cellPx - dragHint.width) / 2;
+      dragHint.y = (size * cellPx - dragHint.height) / 2;
+      g.addChild(dragHint);
     }
     
     return g;
@@ -294,230 +432,164 @@ function createFlankingWidget(container, options = {}) {
     sprite.buttonMode = true;
     sprite.tokenId = token.id;
     
+    // Use sortableChildren to ensure proper z-indexing
     tokenLayer.addChild(sprite);
     token.sprite = sprite;
     
-    // Setup event handlers
     setupTokenInteraction(token);
   }
 
-  // Token interaction - refactored for cleaner implementation
   function setupTokenInteraction(token) {
     const sprite = token.sprite;
     
-    // Clean event listeners
     sprite.removeAllListeners();
-    
-    // Make all tokens interactive, not just ones with teams
     sprite.interactive = true;
     sprite.buttonMode = true;
-    
-    // Store token reference on the sprite
     sprite.token = token;
     
-    // Handle right-click for context menu
-    sprite.on('rightdown', handleRightClick);
+    sprite.on('rightdown', (event) => {
+      event.stopPropagation();
+      hideContextMenu();
+      hideFlanking();
+      showContextMenu(token, event.data.global.x, event.data.global.y);
+    });
     
-    // Handle drag operations
-    sprite.on('mousedown', handleDragStart);
+    sprite.on('mousedown', (event) => {
+      // Only handle left mouse button
+      if (event.data.originalEvent.button !== 0) return;
+      
+      hideFlanking();
+      
+      const origPos = { x: sprite.x, y: sprite.y };
+      const mouseDownTime = Date.now();
+      let hasMoved = false;
+      const dragThreshold = 3;
+      
+      function handleMouseMove(e) {
+        const rect = app.view.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) * (app.view.width / rect.width);
+        const mouseY = (e.clientY - rect.top) * (app.view.height / rect.height);
+        
+        const dx = mouseX - (origPos.x + token.size * cellPx / 2);
+        const dy = mouseY - (origPos.y + token.size * cellPx / 2);
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        
+        if (!hasMoved && distance > dragThreshold) {
+          hasMoved = true;
+          currentState = UIState.DRAGGING;
+          draggingToken = token;
+          occupyGrid(token, false);
+          sprite.alpha = 0.7;
+          sprite.zIndex = 1000; // Ensure dragged token appears above other tokens
+        }
+        
+        if (hasMoved) {
+          const {col: cursorCol, row: cursorRow} = pxToGrid(mouseX, mouseY);
+          
+          const tokenRow = token.size % 2 === 0 ? cursorRow - (token.size/2) + 0.5 : cursorRow - Math.floor(token.size/2);
+          const tokenCol = token.size % 2 === 0 ? cursorCol - (token.size/2) + 0.5 : cursorCol - Math.floor(token.size/2);
+          
+          const row = Math.round(tokenRow);
+          const col = Math.round(tokenCol);
+          
+          const isInGrid = isWithinGrid(row, col, token.size);
+          const isValid = isInGrid && isAreaFree(row, col, token.size, token.id);
+          
+          if (isInGrid) {
+            const snapPos = gridToPx(row, col);
+            sprite.x = snapPos.x;
+            sprite.y = snapPos.y;
+            sprite.alpha = isValid ? 0.8 : 0.4;
+            sprite.tint = isValid ? 0xffffff : 0xff6666;
+          } else {
+            sprite.x = mouseX - (token.size * cellPx / 2);
+            sprite.y = mouseY - (token.size * cellPx / 2);
+            sprite.alpha = 0.5;
+            sprite.tint = 0xff9999;
+          }
+        }
+      }
+      
+      function handleMouseUp(e) {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        
+        sprite.zIndex = 0;
+        
+        if (!hasMoved) {
+          sprite.alpha = 1;
+          sprite.tint = 0xffffff;
+          
+          if (token.team) {
+            occupyGrid(token, true);
+          }
+          
+          if (!token.team) {
+            showTeamPrompt(token);
+          }
+          
+          return;
+        }
+        
+        sprite.alpha = 1;
+        sprite.tint = 0xffffff;
+        
+        const rect = app.view.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) * (app.view.width / rect.width);
+        const mouseY = (e.clientY - rect.top) * (app.view.height / rect.height);
+        
+        const {col: cursorCol, row: cursorRow} = pxToGrid(mouseX, mouseY);
+        const tokenRow = token.size % 2 === 0 ? cursorRow - (token.size/2) + 0.5 : cursorRow - Math.floor(token.size/2);
+        const tokenCol = token.size % 2 === 0 ? cursorCol - (token.size/2) + 0.5 : cursorCol - Math.floor(token.size/2);
+        
+        const row = Math.round(tokenRow);
+        const col = Math.round(tokenCol);
+        
+        if (isWithinGrid(row, col, token.size) && 
+            isAreaFree(row, col, token.size, token.id)) {
+          token.row = row;
+          token.col = col;
+          
+          const snapPos = gridToPx(row, col);
+          sprite.x = snapPos.x;
+          sprite.y = snapPos.y;
+          
+          if (token.team) {
+            occupyGrid(token, true);
+          } else {
+            showTeamPrompt(token);
+          }
+        } else {
+          sprite.x = origPos.x;
+          sprite.y = origPos.y;
+          
+          if (token.team) {
+            occupyGrid(token, true);
+          }
+        }
+        
+        draggingToken = null;
+        currentState = UIState.IDLE;
+      }
+      
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    });
     
-    // Only add hover events for tokens with teams (for flanking visualization)
     if (token.team) {
-        sprite.on('mouseover', handleHoverStart);
-        sprite.on('mouseout', handleHoverEnd);
-    }
-
-    // Right-click handler function
-    function handleRightClick(event) {
-        event.stopPropagation();
-        hideContextMenu();
-        hideFlanking();
-        showContextMenu(token, event.data.global.x, event.data.global.y);
-    }
-
-    // Drag start handler - completely revised to better handle large tokens
-    function handleDragStart(event) {
-        // Only handle left mouse button
-        if (event.data.originalEvent.button !== 0) return;
-        
-        // Hide flanking and reset state
-        hideFlanking();
-        
-        // Store original position for potential revert
-        const origPos = { x: sprite.x, y: sprite.y };
-        const mouseDownTime = Date.now();
-        let hasMoved = false;
-        const dragThreshold = 3;
-        
-        // Set up the mousemove handler with improved grid-based positioning
-        function handleMouseMove(e) {
-            // Get precise cursor position in canvas coordinates
-            const rect = app.view.getBoundingClientRect();
-            const mouseX = (e.clientX - rect.left) * (app.view.width / rect.width);
-            const mouseY = (e.clientY - rect.top) * (app.view.height / rect.height);
-            
-            // Calculate distance moved from original position
-            const dx = mouseX - (origPos.x + token.size * cellPx / 2);
-            const dy = mouseY - (origPos.y + token.size * cellPx / 2);
-            const distance = Math.sqrt(dx*dx + dy*dy);
-            
-            // Only start dragging after threshold is passed
-            if (!hasMoved && distance > dragThreshold) {
-                hasMoved = true;
-                
-                // Update global state
-                currentState = UIState.DRAGGING;
-                draggingToken = token;
-                
-                // Remove from grid
-                occupyGrid(token, false);
-                
-                // Apply visual feedback
-                sprite.alpha = 0.7;
-                sprite.zIndex = 1000; // Bring to front while dragging
-            }
-            
-            // Only update position if we're actually dragging
-            if (hasMoved) {
-                // Determine which grid cell the cursor is over
-                const {col: cursorCol, row: cursorRow} = pxToGrid(mouseX, mouseY);
-                
-                // Calculate the top-left corner position for a token centered on cursor
-                // For even-sized tokens (2x2, 4x4), we need to offset by half a cell
-                const tokenRow = token.size % 2 === 0 ? cursorRow - (token.size/2) + 0.5 : cursorRow - Math.floor(token.size/2);
-                const tokenCol = token.size % 2 === 0 ? cursorCol - (token.size/2) + 0.5 : cursorCol - Math.floor(token.size/2);
-                
-                // Round to get final grid position
-                const row = Math.round(tokenRow);
-                const col = Math.round(tokenCol);
-                
-                // Check if this position would be valid
-                const isInGrid = isWithinGrid(row, col, token.size);
-                const isValid = isInGrid && isAreaFree(row, col, token.size, token.id);
-                
-                if (isInGrid) {
-                    // Snap token directly to the calculated grid position
-                    const snapPos = gridToPx(row, col);
-                    sprite.x = snapPos.x;
-                    sprite.y = snapPos.y;
-                    
-                    // Visual feedback based on validity
-                    sprite.alpha = isValid ? 0.8 : 0.4;
-                    sprite.tint = isValid ? 0xffffff : 0xff6666;
-                } else {
-                    // Outside grid - follow cursor with center of token
-                    sprite.x = mouseX - (token.size * cellPx / 2);
-                    sprite.y = mouseY - (token.size * cellPx / 2);
-                    sprite.alpha = 0.5;
-                    sprite.tint = 0xff9999;
-                }
-            }
-        }
-        
-        // Set up drag end handler
-        function handleMouseUp(e) {
-            // Always remove these handlers no matter what
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-            
-            // Restore zIndex
-            sprite.zIndex = 0;
-            
-            // If we didn't exceed the drag threshold, it's a click
-            if (!hasMoved) {
-                // Reset any changes we might have made
-                sprite.alpha = 1;
-                sprite.tint = 0xffffff;
-                
-                // Reoccupy original position since we might have unoccupied it
-                if (token.team) {
-                    occupyGrid(token, true);
-                }
-                
-                // For tokens without team, clicking should trigger team selection
-                if (!token.team) {
-                    showTeamPrompt(token);
-                }
-                
-                return;
-            }
-            
-            // Otherwise, this was a drag that's now ending
-            
-            // Reset visual state
-            sprite.alpha = 1;
-            sprite.tint = 0xffffff;
-            
-            // Get cursor position
-            const rect = app.view.getBoundingClientRect();
-            const mouseX = (e.clientX - rect.left) * (app.view.width / rect.width);
-            const mouseY = (e.clientY - rect.top) * (app.view.height / rect.height);
-            
-            // Calculate final grid position that would center the token on cursor
-            const {col: cursorCol, row: cursorRow} = pxToGrid(mouseX, mouseY);
-            const tokenRow = token.size % 2 === 0 ? cursorRow - (token.size/2) + 0.5 : cursorRow - Math.floor(token.size/2);
-            const tokenCol = token.size % 2 === 0 ? cursorCol - (token.size/2) + 0.5 : cursorCol - Math.floor(token.size/2);
-            
-            // Round to get final grid position
-            const row = Math.round(tokenRow);
-            const col = Math.round(tokenCol);
-            
-            // Check if position is valid
-            if (isWithinGrid(row, col, token.size) && 
-                isAreaFree(row, col, token.size, token.id)) {
-                
-                // Update token data
-                token.row = row;
-                token.col = col;
-                
-                // Snap precisely to grid
-                const snapPos = gridToPx(row, col);
-                sprite.x = snapPos.x;
-                sprite.y = snapPos.y;
-                
-                // Update grid occupancy for tokens with teams
-                if (token.team) {
-                    occupyGrid(token, true);
-                } else {
-                    // For neutral tokens that have been moved, prompt for team selection
-                    showTeamPrompt(token);
-                }
-            } else {
-                // Return to original position
-                sprite.x = origPos.x;
-                sprite.y = origPos.y;
-                
-                // Re-occupy original grid position if token has a team
-                if (token.team) {
-                    occupyGrid(token, true);
-                }
-            }
-            
-            // Reset state
-            draggingToken = null;
-            currentState = UIState.IDLE;
-        }
-        
-        // Add listeners for drag operation - use window to capture mouse even outside canvas
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
-    }
-    
-    // Hover effect handler for flanking
-    function handleHoverStart() {
-        // Only activate hover if we're in idle state
+      sprite.on('mouseover', () => {
         if (currentState === UIState.IDLE) {
-            currentState = UIState.HOVERING;
-            showFlanking(token);
+          currentState = UIState.HOVERING;
+          showFlanking(token);
         }
-    }
-    
-    function handleHoverEnd() {
-        // Only clear hovering if that's our current state
+      });
+      
+      sprite.on('mouseout', () => {
         if (currentState === UIState.HOVERING) {
-            hideFlanking();
-            currentState = UIState.IDLE;
+          hideFlanking();
+          currentState = UIState.IDLE;
         }
+      });
     }
   }
 
@@ -526,87 +598,106 @@ function createFlankingWidget(container, options = {}) {
     const token = { id, size, team, row, col, sprite: null };
     tokens.push(token);
     
-    // Update appearance and interaction
     updateTokenAppearance(token);
     
-    // Add to grid if it has a team
     if (team) {
       occupyGrid(token, true);
     } else {
-      // Show team selection for new tokens
       showTeamPrompt(token);
     }
     
     return token;
   }
 
+  function removeToken(token) {
+    occupyGrid(token, false);
+    if (token.sprite && token.sprite.parent) {
+      token.sprite.parent.removeChild(token.sprite);
+    }
+    tokens = tokens.filter(t => t.id !== token.id);
+  }
+
   // --- Context Menu ---
   function showContextMenu(token, x, y) {
-    // Set state
     currentState = UIState.CONTEXT_MENU;
     contextMenuTarget = token;
     
-    // Calculate menu height based on number of items
     const menuItems = ['Delete', 'Swap Team'];
     const menuHeight = CONTEXT_MENU_ITEM_H * menuItems.length;
     
-    // Create menu container
     const menu = new PIXI.Container();
     
-    // Create menu background
+    // Light context menu background
     const bg = new PIXI.Graphics()
-      .beginFill(0x333333, 0.95)
-      .lineStyle(1, 0xffffff, 0.8)
+      .beginFill(0xf5f5f5, 0.98)
+      .lineStyle(1, 0x888888, 0.8)
       .drawRoundedRect(0, 0, CONTEXT_MENU_W, menuHeight, 6)
       .endFill();
     menu.addChild(bg);
     
-    // Position menu - ensure it stays within viewport
-    menu.x = Math.min(x, width - CONTEXT_MENU_W - 5);
-    menu.y = Math.min(y, height - menuHeight - 5);
+    menu.x = Math.min(x, app.screen.width - CONTEXT_MENU_W - 5);
+    menu.y = Math.min(y, app.screen.height - menuHeight - 5);
     
-    // Add menu items
     menuItems.forEach((item, index) => {
       const itemY = index * CONTEXT_MENU_ITEM_H;
       
-      // Create a container for each menu item
       const itemContainer = new PIXI.Container();
       itemContainer.y = itemY;
       
-      // Item background for hover effect
       const itemBg = new PIXI.Graphics()
-        .beginFill(0x333333, 0.01) // Nearly transparent for hit area
-      // Click handler - use pointerdown for left-click selection
+        .beginFill(0xf5f5f5, 0.01)
+        .drawRect(0, 0, CONTEXT_MENU_W, CONTEXT_MENU_ITEM_H)
+        .endFill();
+      itemBg.interactive = true;
+      itemBg.buttonMode = true;
+      itemContainer.addChild(itemBg);
+      
+      const text = new PIXI.Text(item, {
+        fontSize: 14,
+        fill: 0x222222
+      });
+      text.x = 10;
+      text.y = (CONTEXT_MENU_ITEM_H - text.height) / 2;
+      itemContainer.addChild(text);
+      
+      itemContainer.action = item;
+      
+      itemBg.on('pointerover', () => {
+        itemBg.clear()
+          .beginFill(0xe0e0e0)
+          .drawRect(0, 0, CONTEXT_MENU_W, CONTEXT_MENU_ITEM_H)
+          .endFill();
+      });
+      
+      itemBg.on('pointerout', () => {
+        itemBg.clear()
+          .beginFill(0xf5f5f5, 0.01)
+          .drawRect(0, 0, CONTEXT_MENU_W, CONTEXT_MENU_ITEM_H)
+          .endFill();
+      });
+      
       itemBg.on('pointerdown', (e) => {
-        // Only process left-click (button 0)
         if (e.data.originalEvent.button !== 0) return;
-        
-        // Stop event propagation to prevent the stage click handler from firing
         e.stopPropagation();
         
-        // Make sure we still have a valid target token
         if (contextMenuTarget) {
           if (item === 'Delete') {
             removeToken(contextMenuTarget);
           } else if (item === 'Swap Team') {
-            // Toggle the team
             contextMenuTarget.team = contextMenuTarget.team === 'Ally' ? 'Enemy' : 'Ally';
             updateTokenAppearance(contextMenuTarget);
           }
         }
         
-        // Always hide the menu after action
         hideContextMenu();
       });
       
       menu.addChild(itemContainer);
     });
     
-    // Add menu to stage
     menuLayer.addChild(menu);
     contextMenu = menu;
     
-    // Add global click handler to dismiss menu
     app.stage.on('pointerdown', onStageClick);
   }
   
@@ -616,7 +707,6 @@ function createFlankingWidget(container, options = {}) {
       contextMenu = null;
       contextMenuTarget = null;
       
-      // Remove global handlers
       app.stage.off('pointerup', onStageClick);
       
       if (currentState === UIState.CONTEXT_MENU) {
@@ -626,12 +716,9 @@ function createFlankingWidget(container, options = {}) {
   }
   
   function onStageClick(e) {
-    // Only process if we have an active context menu
     if (contextMenu) {
-      // Check if the click was outside the menu
       let isClickInMenu = false;
       
-      // Properly detect if the click was inside the menu by checking the target and all its parents
       let target = e.target;
       while (target) {
         if (target === contextMenu || (target.parent && target.parent === contextMenu)) {
@@ -647,71 +734,62 @@ function createFlankingWidget(container, options = {}) {
     }
   }
 
-  // --- Remove Token ---
-  function removeToken(token) {
-    occupyGrid(token, false);
-    if (token.sprite && token.sprite.parent) {
-      token.sprite.parent.removeChild(token.sprite);
-    }
-    tokens = tokens.filter(t => t.id !== token.id);
-  }
-
   // --- Team Selection ---
   function showTeamPrompt(token) {
-    // Exit if we're already showing a prompt
     if (currentState === UIState.TEAM_SELECT) return;
     
-    // Clean up
     promptLayer.removeChildren();
     hideFlanking();
     
-    // Set state
     teamPromptToken = token;
     currentState = UIState.TEAM_SELECT;
     
-    // Create background
     const bg = new PIXI.Graphics();
-    bg.beginFill(0x222222, 0.98).drawRoundedRect(0, 0, PROMPT_W, PROMPT_H, 12).endFill();
-    bg.lineStyle(2, 0xffffff, 0.7).drawRoundedRect(0, 0, PROMPT_W, PROMPT_H, 12);
-    bg.x = (width - PROMPT_W)/2; 
-    bg.y = (height - PROMPT_H)/2;
+    bg.beginFill(0xf5f5f5, 0.98).drawRoundedRect(0, 0, PROMPT_W, PROMPT_H, 12).endFill();
+    bg.lineStyle(2, 0x888888, 0.7).drawRoundedRect(0, 0, PROMPT_W, PROMPT_H, 12);
+    
+    // Position centered over the grid
+    const gridWidth = GRID_SIZE * cellPx;
+    const gridHeight = GRID_SIZE * cellPx;
+    bg.x = gridOrigin.x + (gridWidth - PROMPT_W)/2;
+    bg.y = gridOrigin.y + (gridHeight - PROMPT_H)/2;
+    
     promptLayer.addChild(bg);
 
-    // Create text
-    const txt = new PIXI.Text("Is this token an Ally or Enemy?", {fontSize: 16, fill: '#fff'});
-    txt.x = bg.x + (PROMPT_W-txt.width)/2; 
-    txt.y = bg.y + 18;
-    promptLayer.addChild(txt);
+    const txt = new PIXI.Text("Is this token an Ally or Enemy?", {fontSize: 16, fill: '#222'});
+    txt.x = (PROMPT_W-txt.width)/2; 
+    txt.y = 18;
+    bg.addChild(txt);
 
-    // Create Ally button
     const btnAlly = new PIXI.Graphics();
     btnAlly.beginFill(COLORS.Ally).drawRoundedRect(0, 0, 80, 32, 8).endFill();
-    btnAlly.lineStyle(2, 0xffffff, 0.7).drawRoundedRect(0, 0, 80, 32, 8);
-    btnAlly.x = bg.x + 20; 
-    btnAlly.y = bg.y + PROMPT_H-48;
+    btnAlly.lineStyle(2, 0x888888, 0.7).drawRoundedRect(0, 0, 80, 32, 8);
+    btnAlly.x = 20; 
+    btnAlly.y = PROMPT_H-48;
     btnAlly.interactive = true; 
     btnAlly.buttonMode = true;
     btnAlly.on('pointerdown', () => assignTeam('Ally'));
     
-    const lblA = new PIXI.Text("Ally", {fontSize: 16, fill: '#000'});
-    lblA.x = btnAlly.x + (80-lblA.width)/2; 
-    lblA.y = btnAlly.y + 6;
-    promptLayer.addChild(btnAlly, lblA);
+    const lblA = new PIXI.Text("Ally", {fontSize: 16, fill: '#fff'});
+    lblA.x = (80-lblA.width)/2; 
+    lblA.y = 6;
+    btnAlly.addChild(lblA);
+    bg.addChild(btnAlly);
 
-    // Create Enemy button
     const btnEnemy = new PIXI.Graphics();
     btnEnemy.beginFill(COLORS.Enemy).drawRoundedRect(0, 0, 80, 32, 8).endFill();
-    btnEnemy.lineStyle(2, 0xffffff, 0.7).drawRoundedRect(0, 0, 80, 32, 8);
-    btnEnemy.x = bg.x + PROMPT_W-100; 
-    btnEnemy.y = bg.y + PROMPT_H-48;
+    btnEnemy.lineStyle(2, 0x888888, 0.7).drawRoundedRect(0, 0, 80, 32, 8);
+    btnEnemy.x = PROMPT_W-100; 
+    btnEnemy.y = PROMPT_H-48;
     btnEnemy.interactive = true; 
     btnEnemy.buttonMode = true;
     btnEnemy.on('pointerdown', () => assignTeam('Enemy'));
     
     const lblE = new PIXI.Text("Enemy", {fontSize: 16, fill: '#fff'});
-    lblE.x = btnEnemy.x + (80-lblE.width)/2; 
-    lblE.y = btnEnemy.y + 6;
-    promptLayer.addChild(btnEnemy, lblE);
+    lblE.x = (80-lblE.width)/2; 
+    lblE.y = 6;
+    btnEnemy.addChild(lblE);
+    bg.addChild(btnEnemy);
   }
 
   function hideTeamPrompt() {
@@ -725,17 +803,12 @@ function createFlankingWidget(container, options = {}) {
   function assignTeam(team) {
     if (!teamPromptToken) return;
     
-    // Update token team
     const token = teamPromptToken;
     token.team = team;
     
-    // Update grid
     occupyGrid(token, true);
-    
-    // Update token appearance
     updateTokenAppearance(token);
     
-    // Clean up
     hideTeamPrompt();
   }
 
@@ -743,72 +816,75 @@ function createFlankingWidget(container, options = {}) {
   function showFlanking(token) {
     if (currentState !== UIState.HOVERING || !token.team) return;
     
-    // Check if the hovered token is flanked
     const isHoveredTokenFlanked = isTokenFlanked(token);
     
-    // Find adjacent enemies 
     const opposingTeam = token.team === 'Ally' ? 'Enemy' : 'Ally';
     const adjacentEnemies = findAdjacentEnemies(token);
     
-    // Add basic highlight to the hovered token - red if flanked, cyan if not
     try {
       if (PIXI.filters.GlowFilter) {
         token.sprite.filters = [
           new PIXI.filters.GlowFilter({
             distance: 8,
-            color: isHoveredTokenFlanked ? 0xFF0000 : 0x00ffff,
+            color: isHoveredTokenFlanked ? 0xd32f2f : 0x1976d2,
             outerStrength: 2
           })
         ];
       } else {
-        token.sprite.tint = isHoveredTokenFlanked ? 0xFF0000 : 0x00ffff;
+        token.sprite.tint = isHoveredTokenFlanked ? 0xd32f2f : 0x1976d2;
       }
     } catch (e) {
-      token.sprite.tint = isHoveredTokenFlanked ? 0xFF0000 : 0x00ffff;
+      token.sprite.tint = isHoveredTokenFlanked ? 0xd32f2f : 0x1976d2;
     }
 
-    // If the token is flanked, show an indicator and explanation
     if (isHoveredTokenFlanked) {
+      // Create a container to hold both labels to ensure proper positioning
+      const labelContainer = new PIXI.Container();
+      labelContainer.zIndex = 100; // Ensure labels appear above tokens
+      
       const label = new PIXI.Text("FLANKED", {
         fontSize: 14, 
-        fill: '#ff0000', 
+        fill: '#d32f2f', 
         fontWeight: 'bold', 
-        stroke: '#000', 
+        stroke: '#fff', 
         strokeThickness: 3
       });
-      label.x = token.sprite.x + (token.size * cellPx / 2);
-      label.y = token.sprite.y - 10;
-      label.anchor.set(0.5, 1);
-      overlayLayer.addChild(label);
+      label.x = 0;
+      label.y = -20; // Position above the container
+      label.anchor.set(0.5, 0);
+      labelContainer.addChild(label);
       
       const subLabel = new PIXI.Text("Cannot provide flanking", {
         fontSize: 12, 
-        fill: '#ffffff', 
-        stroke: '#000', 
+        fill: '#222', 
+        stroke: '#fff', 
         strokeThickness: 2
       });
-      subLabel.x = token.sprite.x + (token.size * cellPx / 2);
-      subLabel.y = token.sprite.y + 5;
-      subLabel.anchor.set(0.5, 1);
-      overlayLayer.addChild(subLabel);
+      subLabel.x = 0;
+      subLabel.y = -2; // Just below the main label
+      subLabel.anchor.set(0.5, 0);
+      labelContainer.addChild(subLabel);
       
-      // Show which units are flanking this token
+      // Position the container at the center of the token
+      labelContainer.x = token.sprite.x + (token.size * cellPx / 2);
+      labelContainer.y = token.sprite.y;
+      
+      overlayLayer.addChild(labelContainer);
+      
       const flankingUnits = tokens.filter(t => 
         t.team !== token.team && calculateFlankingBonus(t, token) > 0
       );
       
       flankingUnits.forEach(flanker => {
-        // Highlight the flanking units
         const highlight = new PIXI.Graphics();
-        highlight.lineStyle(3, 0xff6600)  // Orange for flanking units
+        highlight.lineStyle(3, 0xff9800)
           .drawRect(0, 0, flanker.size * cellPx, flanker.size * cellPx);
         highlight.x = flanker.sprite.x;
         highlight.y = flanker.sprite.y;
         overlayLayer.addChild(highlight);
         
-        // Draw connecting lines
         const lineGraphic = new PIXI.Graphics();
-        lineGraphic.lineStyle(2, 0xff6600, 0.7)
+        lineGraphic.lineStyle(2, 0xff9800, 0.7)
           .moveTo(
             token.sprite.x + (token.size * cellPx / 2),
             token.sprite.y + (token.size * cellPx / 2)
@@ -821,29 +897,23 @@ function createFlankingWidget(container, options = {}) {
       });
     }
     
-    // Only show flanking bonuses if this token isn't already flanked
     if (!isHoveredTokenFlanked) {
-      // Check which enemies this token can flank
       adjacentEnemies.forEach(target => {
-        // Calculate flanking bonus for this target
         const bonus = calculateFlankingBonus(token, target);
         
-        // Only proceed if there's an actual flanking bonus
         if (bonus > 0) {
-          // Add a rectangle highlight
           const highlight = new PIXI.Graphics();
-          highlight.lineStyle(3, 0xffff00)
+          highlight.lineStyle(3, 0xffeb3b)
             .drawRect(0, 0, target.size * cellPx, target.size * cellPx);
           highlight.x = target.sprite.x;
           highlight.y = target.sprite.y;
           overlayLayer.addChild(highlight);
           
-          // Add flanking bonus label
           const label = new PIXI.Text(`+${bonus} Flanking`, {
             fontSize: 14, 
-            fill: '#ff0', 
+            fill: '#ffb300', 
             fontWeight: 'bold', 
-            stroke: '#000', 
+            stroke: '#fff', 
             strokeThickness: 3
           });
           label.x = target.sprite.x + (target.size * cellPx / 2);
@@ -856,20 +926,19 @@ function createFlankingWidget(container, options = {}) {
               target.sprite.filters = [
                 new PIXI.filters.GlowFilter({
                   distance: 8, 
-                  color: 0xffff00, // Yellow for being flanked
+                  color: 0xffb300,
                   outerStrength: 2
                 })
               ];
             } else {
-              target.sprite.tint = 0xffff00;
+              target.sprite.tint = 0xffb300;
             }
           } catch (e) {
-            target.sprite.tint = 0xffff00;
+            target.sprite.tint = 0xffb300;
           }
           
-          // Draw a line connecting the hovering token and the flanked token
           const lineGraphic = new PIXI.Graphics();
-          lineGraphic.lineStyle(2, 0xffffff, 0.7)
+          lineGraphic.lineStyle(2, 0x888888, 0.7)
             .moveTo(
               token.sprite.x + (token.size * cellPx / 2),
               token.sprite.y + (token.size * cellPx / 2)
@@ -889,7 +958,6 @@ function createFlankingWidget(container, options = {}) {
     const opposingTeam = token.team === 'Ally' ? 'Enemy' : 'Ally';
     const enemies = tokens.filter(t => t.team === opposingTeam);
     
-    // Find all enemies adjacent to this token
     return enemies.filter(enemy => 
       isAdjacentNorth(token, enemy) || 
       isAdjacentSouth(token, enemy) || 
@@ -902,30 +970,26 @@ function createFlankingWidget(container, options = {}) {
     overlayLayer.removeChildren();
     
     tokens.forEach(t => {
-        if (t.sprite) {
-            // Always reset visual state unless actively being dragged
-            if (t !== draggingToken || currentState !== UIState.DRAGGING) {
-                t.sprite.filters = null;
-                t.sprite.tint = 0xffffff;
-                t.sprite.alpha = 1; // Ensure alpha gets reset too
-            }
+      if (t.sprite) {
+        if (t !== draggingToken || currentState !== UIState.DRAGGING) {
+          t.sprite.filters = null;
+          t.sprite.tint = 0xffffff;
+          t.sprite.alpha = 1;
         }
+      }
     });
     
-    // Update state unless we're dragging
     if (currentState === UIState.HOVERING) {
-        currentState = UIState.IDLE;
+      currentState = UIState.IDLE;
     }
   }
 
   function isTokenFlanked(token) {
     if (!token || !token.team) return false;
     
-    // First, find all units of the opposing team
     const opposingTeam = token.team === 'Ally' ? 'Enemy' : 'Ally';
     const enemies = tokens.filter(t => t.team === opposingTeam);
     
-    // Find all enemies that are adjacent to this token
     const adjacentEnemies = enemies.filter(enemy => 
       isAdjacentNorth(enemy, token) || 
       isAdjacentSouth(enemy, token) || 
@@ -933,20 +997,17 @@ function createFlankingWidget(container, options = {}) {
       isAdjacentWest(enemy, token)
     );
     
-    // Check if there are enemies on opposite sides
     const hasNorthEnemy = adjacentEnemies.some(e => isAdjacentNorth(e, token));
     const hasSouthEnemy = adjacentEnemies.some(e => isAdjacentSouth(e, token));
     const hasEastEnemy = adjacentEnemies.some(e => isAdjacentEast(e, token));
     const hasWestEnemy = adjacentEnemies.some(e => isAdjacentWest(e, token));
     
-    // If there are enemies on opposite sides, the token is flanked
     return (hasNorthEnemy && hasSouthEnemy) || (hasEastEnemy && hasWestEnemy);
   }
 
   function calculateFlankingBonus(attacker, target) {
     if (!attacker || !target || attacker.team === target.team) return 0;
     
-    // Basic adjacency check
     const isAdjacent = isAdjacentNorth(attacker, target) || 
                       isAdjacentSouth(attacker, target) || 
                       isAdjacentEast(attacker, target) || 
@@ -954,71 +1015,52 @@ function createFlankingWidget(container, options = {}) {
     
     if (!isAdjacent) return 0;
     
-    // Check if the attacker is flanked - if so, they can't provide flanking benefits
-    // This applies to both allies and enemies equally
     if (isTokenFlanked(attacker)) {
-      return 0; // Flanked units cannot provide flanking bonuses
+      return 0;
     }
     
-    // Find all friendly units (same team as attacker) that could contribute to flanking
     const friendlyUnits = tokens.filter(t => 
       t.id !== attacker.id && 
       t.team === attacker.team && 
-      !isTokenFlanked(t) // Units that are themselves flanked can't provide flanking
+      !isTokenFlanked(t)
     );
     
-    // Determine which side the attacker is on
     const isNorth = isAdjacentNorth(attacker, target);
     const isSouth = isAdjacentSouth(attacker, target);
     const isEast = isAdjacentEast(attacker, target);
     const isWest = isAdjacentWest(attacker, target);
     
-    // Find if there's a unit on the opposite side
     const hasSouthAlly = friendlyUnits.some(ally => isAdjacentSouth(ally, target));
     const hasNorthAlly = friendlyUnits.some(ally => isAdjacentNorth(ally, target));
     const hasWestAlly = friendlyUnits.some(ally => isAdjacentWest(ally, target));
     const hasEastAlly = friendlyUnits.some(ally => isAdjacentEast(ally, target));
     
-    // Calculate basic flanking bonus (opposite sides)
     let bonus = 0;
     if ((isNorth && hasSouthAlly) || (isSouth && hasNorthAlly) || 
         (isEast && hasWestAlly) || (isWest && hasEastAlly)) {
       bonus = 2;
     }
     
-    // If we have basic flanking, check for additional flanking from other sides
     if (bonus === 2) {
-      // Count how many additional sides have friendly units
       let additionalSides = 0;
       
-      // Don't count sides the attacker is already on
       if (!isNorth && !isSouth) {
-        if (hasNorthAlly && !isNorth) additionalSides++;
-        if (hasSouthAlly && !isSouth) additionalSides++;
+        if (hasNorthAlly) additionalSides++;
+        if (hasSouthAlly) additionalSides++;
       }
       
       if (!isEast && !isWest) {
-        if (hasEastAlly && !isEast) additionalSides++;
-        if (hasWestAlly && !isWest) additionalSides++;
+        if (hasEastAlly) additionalSides++;
+        if (hasWestAlly) additionalSides++;
       }
       
-      // Each additional side gives +1 bonus
-      bonus += Math.min(additionalSides, 2); // Cap at +4 total
+      bonus += Math.min(additionalSides, 2);
     }
     
     return bonus;
   }
 
-  function getFlankedTokens(token) {
-    // An ally can flank enemies, and an enemy can flank allies
-    const opposingTeam = token.team === 'Ally' ? 'Enemy' : 'Ally';
-    const targets = tokens.filter(t => t.team === opposingTeam);
-    
-    // Get all enemies where this token contributes to flanking
-    return targets.filter(target => calculateFlankingBonus(token, target) > 0);
-  }
-
-  // Helper functions for flanking checks
+  // Helper functions for adjacency checks
   function isAdjacentNorth(token1, token2) {
     return token1.row + token1.size === token2.row && 
            overlapsHorizontally(token1, token2);
@@ -1050,23 +1092,163 @@ function createFlankingWidget(container, options = {}) {
   }
 
   // --- Responsive Resize ---
-  function resize(w, h) {
-    app.renderer.resize(w, h);
-    instr.style.wordWrapWidth = w-20;
+  function resize() {
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    
+    if (containerWidth <= 0 || containerHeight <= 0) return;
+    
+    app.renderer.resize(containerWidth, containerHeight);
+    
+    updateLayout();
     drawGrid();
     
-    // Update all tokens
     tokens.forEach(token => {
       updateTokenAppearance(token);
     });
     
-    // Hide context menu if it exists
     hideContextMenu();
+    
+    // Don't hide the team prompt on resize, just reposition it if it's active
+    if (currentState === UIState.TEAM_SELECT && teamPromptToken) {
+      // If a prompt is active, reposition it
+      const prompt = promptLayer.children[0];
+      if (prompt) {
+        // Center prompt over the grid, not the whole screen
+        const gridWidth = GRID_SIZE * cellPx;
+        const gridHeight = GRID_SIZE * cellPx;
+        prompt.x = gridOrigin.x + (gridWidth - PROMPT_W)/2;
+        prompt.y = gridOrigin.y + (gridHeight - PROMPT_H)/2;
+      } else {
+        // If the prompt was removed somehow, recreate it
+        showTeamPrompt(teamPromptToken);
+      }
+    } else {
+      // No active prompt, make sure the layer is clear
+      hideTeamPrompt();
+    }
+    
+    hideFlanking();
   }
   
-  window.addEventListener('resize', () => {
-    resize(container.clientWidth, container.clientHeight);
-  });
+  window.addEventListener('resize', resize);
+  
+  if (typeof ResizeObserver !== 'undefined') {
+    const resizeObserver = new ResizeObserver(() => resize());
+    resizeObserver.observe(container);
+  }
+
+  // Initialize layout
+  updateLayout();
+  drawGrid();
+
+  // --- Example Scenarios ---
+  function setupExampleButtons(rightColumnX, centerWidth, startY, rightColumnWidth) {
+    exampleContainer.removeChildren();
+    
+    const buttonWidth = rightColumnWidth - 20;
+    const buttonHeight = 40;
+    const buttonGap = 10;
+    const buttonX = rightColumnX + 10;
+    
+    const examples = [
+      { label: "Example 1: Basic Flanking", scenario: loadExample1 },
+      { label: "Example 2: Multi-Side Flanking", scenario: loadExample2 },
+      { label: "Example 3: Same-Side Allies", scenario: loadExample3 },
+      { label: "Example 4: Counter-Flanking", scenario: loadExample4 }
+    ];
+    
+    examples.forEach((example, index) => {
+      const button = new PIXI.Graphics();
+      button.beginFill(0x4e6b9f)
+        .drawRoundedRect(0, 0, buttonWidth, buttonHeight, 8)
+        .endFill();
+      
+      button.x = buttonX;
+      button.y = startY + (index * (buttonHeight + buttonGap));
+      button.interactive = true;
+      button.buttonMode = true;
+      
+      const label = new PIXI.Text(example.label, {
+        fontSize: 16,
+        fill: 0xffffff,
+        fontWeight: 'bold'
+      });
+      
+      label.x = (buttonWidth - label.width) / 2;
+      label.y = (buttonHeight - label.height) / 2;
+      button.addChild(label);
+      
+      button.on('mouseover', () => {
+        button.alpha = 0.8;
+      });
+      
+      button.on('mouseout', () => {
+        button.alpha = 1;
+      });
+      
+      button.on('pointerdown', () => {
+        clearTokens();
+        example.scenario();
+      });
+      
+      exampleContainer.addChild(button);
+    });
+  }
+
+  function clearTokens() {
+    tokens.forEach(removeToken);
+    tokens = [];
+    nextTokenId = 1;
+  }
+
+  // Example 1: Basic flanking with two allies on opposite sides
+  function loadExample1() {
+    // Add a 2x2 enemy in the middle
+    const enemyToken = addToken(2, 9, 9, 'Enemy');
+    
+    // Add allies on opposite sides
+    addToken(1, 8, 9, 'Ally');  // Tim
+    addToken(1, 11, 9, 'Ally'); // Jerry
+  }
+
+  // Example 2: Flanking with allies on multiple sides for maximum bonus
+  function loadExample2() {
+    // Add a 2x2 enemy in the middle
+    const enemyToken = addToken(2, 9, 9, 'Enemy');
+    
+    // Add allies on all four sides
+    addToken(1, 8, 9, 'Ally');  // Tim
+    addToken(1, 11, 9, 'Ally'); // Jerry
+    addToken(1, 9, 8, 'Ally');  // Clarence
+    addToken(1, 9, 11, 'Ally'); // Claus
+  }
+
+  // Example 3: Multiple allies on the same side
+  function loadExample3() {
+    // Add a 2x2 enemy in the middle
+    const enemyToken = addToken(2, 9, 9, 'Enemy');
+    
+    // Add allies, with two on the same side
+    addToken(1, 8, 9, 'Ally');  // Tim
+    addToken(1, 11, 9, 'Ally'); // Jerry
+    addToken(1, 11, 10, 'Ally'); // Claus (same side as Jerry)
+  }
+
+  // Example 4: Flanking negated by being flanked
+  function loadExample4() {
+    // Add a 2x2 enemy in the middle
+    const enemyToken = addToken(2, 9, 9, 'Enemy');
+    
+    // Add allies on all sides
+    addToken(1, 8, 9, 'Ally');  // Tim
+    addToken(1, 11, 9, 'Ally'); // Jerry
+    addToken(1, 9, 8, 'Ally');  // Clarence
+    addToken(1, 9, 11, 'Ally'); // Claus
+    
+    // Add an enemy ally that flanks one of our allies
+    addToken(1, 7, 9, 'Enemy'); // Cave Drake's ally
+  }
 
   // --- Public API ---
   return {
@@ -1083,7 +1265,6 @@ function createFlankingWidget(container, options = {}) {
       currentState = UIState.IDLE;
       draggingToken = null;
     },
-    // Add reset state function for emergency recovery
     resetState: () => {
       currentState = UIState.IDLE;
       draggingToken = null;
@@ -1091,19 +1272,19 @@ function createFlankingWidget(container, options = {}) {
       hideFlanking();
       hideTeamPrompt();
       
-      // Reset all tokens to their visual state
       tokens.forEach(token => {
         if (token.sprite) {
           token.sprite.alpha = 1;
           token.sprite.tint = 0xffffff;
           token.sprite.filters = null;
           
-          // Make sure it's at the right position
           const pos = gridToPx(token.row, token.col);
           token.sprite.x = pos.x;
           token.sprite.y = pos.y;
         }
       });
+      
+      resize();
     }
   };
 }
@@ -1113,13 +1294,45 @@ window.createFlankingWidget = createFlankingWidget;
 
 // Add widget loader compatibility
 window.renderWidget = function(container) {
+  if (!container.style.position || container.style.position === 'static') {
+    container.style.position = 'relative';
+  }
+
+  // Calculate minimum height needed for the text columns above the grid
+  function getMinHeight() {
+    // Estimate: titles + instructions + right text + palette + margins
+    // These values are based on font sizes and spacing in the widget
+    const titleHeight = 32; // leftTitle/rightTitle
+    const instrLines = 9; // INSTR_TEXT lines
+    const instrLineHeight = 22;
+    const instrHeight = instrLines * instrLineHeight;
+    const rightTextLines = 15;
+    const rightTextLineHeight = 22;
+    const rightTextHeight = rightTextLines * rightTextLineHeight;
+    const paletteHeight = 44 + 12; // PALETTE_BTN + margin
+    const buttonHeight = 40 * 4 + 10 * 3; // 4 example buttons + gaps
+    const verticalMargins = 48 + 20 + 20; // top, between, bottom
+
+    // Take the max of left and right columns
+    const leftCol = titleHeight + instrHeight + verticalMargins + paletteHeight;
+    const rightCol = titleHeight + rightTextHeight + buttonHeight + verticalMargins;
+
+    // Add some extra for grid and padding
+    return Math.max(leftCol, rightCol) + 500;
+  }
+
+  if (!container.style.height) {
+    const minHeight = getMinHeight();
+    container.style.height = minHeight + 'px';
+    container.style.minHeight = minHeight + 'px';
+  }
+
   const widget = createFlankingWidget(container);
-  
-  // Add global emergency reset function
+
   window.resetFlankingWidget = function() {
     widget.resetState();
     return "Widget state has been reset";
   };
-  
+
   return widget;
 };
