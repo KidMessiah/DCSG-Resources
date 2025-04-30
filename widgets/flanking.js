@@ -576,6 +576,39 @@ function createFlankingWidget(container, options = {}) {
       // Item background for hover effect
       const itemBg = new PIXI.Graphics()
         .beginFill(0x333333, 0.01) // Nearly transparent for hit area
+        .drawRect(0, 0, CONTEXT_MENU_W, CONTEXT_MENU_ITEM_H)
+        .endFill();
+      itemBg.interactive = true;
+      itemBg.buttonMode = true;
+      itemContainer.addChild(itemBg);
+      
+      // Text label
+      const text = new PIXI.Text(item, {
+        fontSize: 14,
+        fill: 0xffffff
+      });
+      text.x = 10;
+      text.y = (CONTEXT_MENU_ITEM_H - text.height) / 2;
+      itemContainer.addChild(text);
+      
+      // Store the action in a property for clarity
+      itemContainer.action = item;
+      
+      // Hover effect
+      itemBg.on('pointerover', () => {
+        itemBg.clear()
+          .beginFill(0x666666)
+          .drawRect(0, 0, CONTEXT_MENU_W, CONTEXT_MENU_ITEM_H)
+          .endFill();
+      });
+      
+      itemBg.on('pointerout', () => {
+        itemBg.clear()
+          .beginFill(0x333333, 0.01)
+          .drawRect(0, 0, CONTEXT_MENU_W, CONTEXT_MENU_ITEM_H)
+          .endFill();
+      });
+      
       // Click handler - use pointerdown for left-click selection
       itemBg.on('pointerdown', (e) => {
         // Only process left-click (button 0)
