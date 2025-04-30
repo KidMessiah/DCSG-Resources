@@ -22,7 +22,7 @@ function createFlankingWidget(container, options = {}) {
   const COLORS = { Ally: 0x2ecc40, Enemy: 0xe74c3c, Neutral: 0x888888 };
   const PALETTE = [1, 2, 3, 4];
   const BG_COLOR = 0x222222;
-  const INSTR_TEXT = "Drag a token onto the grid. After placing, choose Ally or Enemy. Hover over tokens to see flanking bonuses. Right-click for more options.";
+  const INSTR_TEXT = "Drag a token onto the grid. After placing, choose Ally or Enemy. Hover over tokens to see flanking bonuses. Right-click for more options. Tokens can also be dragged around freely to reposition them.";
   const PALETTE_MARGIN = 12, PALETTE_BTN = 44, PALETTE_GAP = 12;
   const PROMPT_W = 220, PROMPT_H = 110;
   const CONTEXT_MENU_W = 120, CONTEXT_MENU_ITEM_H = 30;
