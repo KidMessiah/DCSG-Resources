@@ -173,7 +173,7 @@ function renderSidebarList() {
 }
 
 // --- Content Rendering ---
-function renderContent() {
+async function renderContent() {
   const c = state.dom.content;
   // PDF Viewer
   if (state.selected && state.selected.type === 'pdf') {
@@ -214,8 +214,48 @@ function renderContent() {
     };
     return;
   }
-  // Home Page
+  // Home Page with widgets and nav
   if (state.currentType === 'Home' || state.currentType === 'All') {
+    // Fetch homepage widgets
+    let widgets = [];
+    try {
+      const res = await fetch('content/homepage.json');
+      if (res.ok) widgets = await res.json();
+    } catch {}
+    // Sidebar widget nav
+    let nav = document.getElementById('homepage-widget-nav');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.id = 'homepage-widget-nav';
+      nav.style.marginBottom = '24px';
+      state.dom.sidebar.insertBefore(nav, state.dom.sidebar.children[1] || null);
+    }
+    nav.innerHTML = '';
+    widgets.forEach((widget, idx) => {
+      const btn = document.createElement('button');
+      btn.textContent = widget.name || `Widget ${idx + 1}`;
+      btn.style.display = 'block';
+      btn.style.width = '100%';
+      btn.style.background = 'none';
+      btn.style.border = 'none';
+      btn.style.color = '#fff';
+      btn.style.textAlign = 'left';
+      btn.style.padding = '8px 0 2px 0';
+      btn.style.cursor = 'pointer';
+      btn.style.borderRadius = '4px';
+      btn.onmouseover = () => btn.style.background = '#33415c';
+      btn.onmouseout = () => btn.style.background = 'none';
+      btn.onclick = () => {
+        const el = document.getElementById(`homepage-widget-${idx}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      nav.appendChild(btn);
+    });
+    // Remove nav if not on homepage
+    if (!(state.currentType === 'Home' || state.currentType === 'All') && nav.parentNode) {
+      nav.parentNode.removeChild(nav);
+    }
+    // Render widgets in content
     c.innerHTML = `
       <div class="home-page">
         <h2>Welcome to HHG Resources</h2>
@@ -225,10 +265,46 @@ function renderContent() {
           <h3>About</h3>
           <p>Put your custom text here. You can add more images, links, or any HTML you want.</p>
         </div>
-        <div id="homepage-js-list"></div>
+        <div id="homepage-js-widgets"></div>
       </div>
     `;
-    renderHomepageJsList();
+    const widgetsDiv = document.getElementById('homepage-js-widgets');
+
+    // --- Sequentially load and render each widget ---
+    for (let idx = 0; idx < widgets.length; idx++) {
+      const widget = widgets[idx];
+      const div = document.createElement('div');
+      div.id = `homepage-widget-${idx}`;
+      div.className = 'home-page-widget';
+      // Ensure widget container is block and has margin
+      div.style.display = 'block';
+      div.style.width = '100%';
+      div.style.margin = '32px 0';
+      widgetsDiv.appendChild(div);
+
+      // Dynamically load the JS file and render the widget
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = widget.src;
+        script.onload = () => {
+          if (typeof window.renderWidget === 'function') {
+            try {
+              window.renderWidget(div);
+            } catch (e) {
+              div.innerHTML = `<div style="color:red;">Widget error: ${e.message}</div>`;
+            }
+            delete window.renderWidget;
+          }
+          resolve();
+        };
+        script.onerror = () => {
+          div.innerHTML = `<div style="color:red;">Failed to load widget: ${widget.src}</div>`;
+          resolve();
+        };
+        document.body.appendChild(script);
+      });
+    }
     return;
   }
   // Empty for PDF/Video section with no selection
@@ -279,55 +355,14 @@ function renderMedia(item) {
   return '';
 }
 
-// --- Homepage JS Loader ---
-async function renderHomepageJsList() {
-  try {
-    const res = await fetch('content/homepage.json');
-    if (!res.ok) return;
-    const jsList = await res.json();
-    if (!Array.isArray(jsList)) return;
-    const container = document.getElementById('homepage-js-list');
-    if (container) {
-      container.innerHTML = `<div id="homepage-js-widgets"></div>`;
-    }
-    const widgetsDiv = document.getElementById('homepage-js-widgets');
-    for (const jsFile of jsList) {
-      // Create a container for each widget
-      const widgetContainer = document.createElement('div');
-      widgetContainer.className = 'homepage-js-widget';
-      widgetsDiv && widgetsDiv.appendChild(widgetContainer);
-
-      // Dynamically load the JS file
-      await new Promise((resolve, reject) => {
-        if ([...document.scripts].some(s => s.src && s.src.endsWith(jsFile))) {
-          resolve();
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = jsFile;
-        script.async = false;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.body.appendChild(script);
-      });
-
-      // If the JS file exposes a renderHomepageWidget function, call it
-      if (typeof window.renderHomepageWidget === 'function') {
-        try {
-          window.renderHomepageWidget(widgetContainer);
-        } catch (e) {
-          widgetContainer.innerHTML = `<div style="color:red;">Error running widget: ${escapeHtml(e.message)}</div>`;
-        }
-        // Remove the global to avoid conflicts
-        delete window.renderHomepageWidget;
-      }
-    }
-  } catch {}
-}
-
 // --- Helpers ---
 function capitalize(str) {
   return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+function isHomepage() {
+  // Adjust this check if you use routing
+  return location.pathname.endsWith('/') || location.pathname.endsWith('index.html');
 }
 
 // --- Init ---
