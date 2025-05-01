@@ -356,7 +356,37 @@ function renderSidebarList() {
     
     for (const item of items) {
       const btn = document.createElement('button');
-      btn.textContent = item.title;
+      
+      // Create a container for title and close button
+      const titleContainer = document.createElement('div');
+      titleContainer.style.display = 'flex';
+      titleContainer.style.justifyContent = 'space-between';
+      titleContainer.style.width = '100%';
+      titleContainer.style.alignItems = 'center';
+      
+      // Title text
+      const titleText = document.createElement('span');
+      titleText.textContent = item.title;
+      titleContainer.appendChild(titleText);
+      
+      // Add close button for selected PDF or Video
+      if (state.selected && state.selected.item && state.selected.item.path === item.path) {
+        const closeBtn = document.createElement('span');
+        closeBtn.textContent = '❌';
+        closeBtn.style.marginLeft = '8px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.fontSize = '14px';
+        closeBtn.title = `Close ${state.currentType.toUpperCase()}`;
+        closeBtn.onclick = (e) => {
+          e.stopPropagation(); // Prevent triggering the parent button click
+          state.selected = null;
+          renderContent();
+          renderSidebarList();
+        };
+        titleContainer.appendChild(closeBtn);
+      }
+      
+      btn.appendChild(titleContainer);
       btn.title = item.description || '';
       
       // Add styling consistent with widget sidebar buttons
@@ -409,8 +439,6 @@ function renderSidebarList() {
       };
       
       contentNav.appendChild(btn);
-      
-      // REMOVE the old description below button - we now use the inline infoLine above
     }
     
     listDiv.appendChild(contentNav);
@@ -420,21 +448,16 @@ function renderSidebarList() {
 // --- Content Rendering ---
 async function renderContent() {
   const c = state.dom.content;
-  // PDF Viewer
+  // PDF Viewer - remove close button
   if (state.selected && state.selected.type === 'pdf') {
     c.innerHTML = `
       <div class="pdf-viewer-container">
-        <button class="close-btn" id="closePdfBtn">&times; Close</button>
         <embed src="${escapeHtml(state.selected.item.path)}" type="application/pdf" class="pdf-embed">
       </div>
     `;
-    document.getElementById('closePdfBtn').onclick = () => {
-      state.selected = null;
-      renderContent();
-    };
     return;
   }
-  // Video Viewer
+  // Video Viewer - remove close button
   if (state.selected && state.selected.type === 'video') {
     let videoEmbed = '';
     const path = state.selected.item.path;
@@ -445,7 +468,6 @@ async function renderContent() {
     }
     c.innerHTML = `
       <div class="video-viewer-container">
-        <button class="close-btn" id="closeVideoBtn">&times; Close</button>
         <div class="video-content">
           <h2>${escapeHtml(state.selected.item.title)}</h2>
           <p>${escapeHtml(state.selected.item.description || '')}</p>
@@ -453,10 +475,6 @@ async function renderContent() {
         </div>
       </div>
     `;
-    document.getElementById('closeVideoBtn').onclick = () => {
-      state.selected = null;
-      renderContent();
-    };
     return;
   }
   // Home Page with widgets (improved)

@@ -128,7 +128,6 @@ function createFlankingWidget(container, options = {}) {
   
   // Updated right column text with DnD 5e style rules
   const rightText = new PIXI.Text(
-    "Variant Flanking - Small\n\n" +
     "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n" +
     "• When you have an ally on the opposite side of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
     "• For each additional ally on any other side of the creature, you gain an additional +1 bonus (maximum +4).\n\n" +
@@ -359,8 +358,7 @@ function createFlankingWidget(container, options = {}) {
 
   // Update the rules text based on diagonal flanking mode
   function updateRulesText() {
-    let rulesText = "Variant Flanking - Small\n\n" +
-      "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n";
+    let rulesText = "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n";
     
     if (diagonalFlankingEnabled) {
       rulesText += "• When you have an ally on the opposite side or diagonal of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +

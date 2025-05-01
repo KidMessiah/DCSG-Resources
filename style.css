@@ -12,9 +12,9 @@ body, html {
   height: 100vh;
 }
 
-/* --- Updated Sidebar Styling --- */
+/* --- Sidebar Styling --- */
 #sidebar {
-  width: 280px; /* Slightly wider for better readability */
+  width: 280px;
   background: #222e3c;
   color: #fff;
   padding: 20px 16px;
@@ -50,7 +50,10 @@ body, html {
   margin-bottom: 16px;
 }
 
-#search {
+/* Form element styling */
+#search,
+.cat-dropdown, 
+#widget-category-select {
   width: 100%;
   padding: 8px 12px;
   border-radius: 4px;
@@ -58,8 +61,15 @@ body, html {
   background-color: #2c3a4a;
   color: white;
   font-size: 0.95em;
-  margin: 0; /* Remove margins for consistent spacing */
-  box-sizing: border-box; /* Ensure padding is included in width */
+  margin: 0;
+  box-sizing: border-box;
+}
+
+#search:focus,
+.cat-dropdown:focus, 
+#widget-category-select:focus {
+  border-color: #4d7cc9;
+  outline: none;
 }
 
 #sidebar .cat-nav + #search {
@@ -69,7 +79,7 @@ body, html {
 .cat-search-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Increased gap for better spacing */
+  gap: 16px;
   margin-bottom: 16px;
 }
 
@@ -96,21 +106,19 @@ body, html {
   background: #33415c;
 }
 
+/* Content area styling */
 #content {
   flex: 1;
-  padding: 0; /* Changed from 32px to 0 */
+  padding: 0;
   overflow-y: auto;
   background: #fff;
-  border-radius: 0; /* Changed from 0 12px 12px 0 to 0 */
-  box-shadow: none; /* Changed from 0 0 12px rgba(0,0,0,0.05) to none */
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-}
-
-/* Add spacing for video controls */
-#content > div:first-child {
-  margin-bottom: 18px;
+  gap: 0px;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 #content input[type="text"], #content select {
@@ -121,17 +129,7 @@ body, html {
   margin-bottom: 0;
 }
 
-.cat-dropdown {
-  font-size: 1em;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-bottom: 0;
-  margin-top: 0;
-  background: #fff;
-  color: #222;
-}
-
+/* Card styling */
 .card {
   background: #f9fafb;
   border-radius: 8px;
@@ -178,15 +176,17 @@ body, html {
   background: #33415c;
 }
 
+/* Home page styling */
 .home-page {
   max-width: none;
   margin: 0;
   background: none;
   border-radius: 0;
   box-shadow: none;
-  padding: 32px 0;
   text-align: center;
   width: 100%;
+  padding: 32px 0px;
+  box-sizing: border-box;
 }
 
 .home-page h2 {
@@ -199,6 +199,7 @@ body, html {
   margin: 24px 0;
 }
 
+/* Responsive design */
 @media (max-width: 900px) {
   #container {
     flex-direction: column;
@@ -210,12 +211,19 @@ body, html {
     padding: 12px;
   }
   #content {
-    border-radius: 0; /* Changed from 0 0 12px 12px to 0 */
-    padding: 0;       /* Changed from 16px to 0 */
+    border-radius: 0;
+    padding: 0;
     gap: 16px;
   }
   .card {
     width: 100%;
+  }
+}
+
+@media (min-width: 901px) {
+  #content {
+    width: calc(100% - 280px);
+    box-sizing: border-box;
   }
 }
 
@@ -253,13 +261,6 @@ body, html {
   transition: transform 0.2s;
 }
 
-/* Remove hover/focus-within arrow spin: */
-.section-slideout:hover .section-slideout-base:after,
-.section-slideout:focus-within .section-slideout-base:after {
-  transform: none;
-}
-
-/* Add arrow spin only when dropdown is open (display:block) */
 .section-slideout .section-slideout-options[style*="display: block"] ~ .section-slideout-base:after,
 .section-slideout .section-slideout-options[style*="display: block"] + .section-slideout-base:after {
   transform: rotate(-180deg);
@@ -307,10 +308,11 @@ body, html {
   to { opacity: 1; transform: translateY(0);}
 }
 
-/* --- Video List Sidebar --- */
+/* --- Video list styling --- */
 .video-list {
   margin-top: 18px;
 }
+
 .video-list button {
   display: block;
   width: 100%;
@@ -325,10 +327,12 @@ body, html {
   font-size: 1em;
   transition: background 0.18s;
 }
+
 .video-list button.active,
 .video-list button:hover {
   background: #33415c;
 }
+
 .video-list div {
   font-size: 0.95em;
   color: #bbb;
@@ -336,18 +340,20 @@ body, html {
   margin-bottom: 6px;
 }
 
-/* --- Large Video Player --- */
+/* --- Media embeds --- */
 #content iframe,
-#content video {
+#content video,
+.video-embed {
   width: 100%;
   height: 70vh;
   min-height: 320px;
   border-radius: 8px;
   background: #000;
   display: block;
+  max-width: 100%;
 }
 
-/* --- PDF and Video Viewer --- */
+/* --- PDF and Video containers --- */
 .pdf-viewer-container,
 .video-viewer-container {
   position: relative;
@@ -355,9 +361,13 @@ body, html {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.pdf-viewer {
+.pdf-viewer,
+.video-viewer {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
   margin: 0; padding: 0;
@@ -370,13 +380,7 @@ body, html {
   margin: 0; padding: 0;
   display: block;
   background: #222e3c;
-  border-radius: 8px;
-}
-
-.video-viewer {
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  margin: 0; padding: 0;
+  max-width: 100%;
 }
 
 .video-content {
@@ -385,16 +389,7 @@ body, html {
   margin: auto;
 }
 
-.video-embed {
-  width: 100%;
-  height: 70vh;
-  min-height: 320px;
-  border-radius: 8px;
-  background: #000;
-  display: block;
-}
-
-.close-btn {
+close-btn {
   position: absolute;
   top: 18px;
   right: 32px;
@@ -414,8 +409,7 @@ body, html {
   margin: 24px 0;
 }
 
-/* Add this to your existing CSS file */
-
+/* --- Sidebar widget lists --- */
 .widget-sidebar-list {
   flex: 1;
   overflow-y: auto;
@@ -427,24 +421,36 @@ body, html {
   scrollbar-color: #4a5568 #1e2a3a;
 }
 
-.widget-sidebar-list::-webkit-scrollbar {
+/* Unified scrollbar styling */
+.widget-sidebar-list::-webkit-scrollbar,
+#homepage-widget-nav::-webkit-scrollbar {
   width: 6px;
 }
 
-.widget-sidebar-list::-webkit-scrollbar-track {
+.widget-sidebar-list::-webkit-scrollbar-track,
+#homepage-widget-nav::-webkit-scrollbar-track {
   background: #1e2a3a;
   border-radius: 4px;
 }
 
-.widget-sidebar-list::-webkit-scrollbar-thumb {
+.widget-sidebar-list::-webkit-scrollbar-thumb,
+#homepage-widget-nav::-webkit-scrollbar-thumb {
   background: #4a5568;
   border-radius: 4px;
 }
 
-.widget-sidebar-list::-webkit-scrollbar-thumb:hover {
+.widget-sidebar-list::-webkit-scrollbar-thumb:hover,
+#homepage-widget-nav::-webkit-scrollbar-thumb:hover {
   background: #5a6578;
 }
 
+/* Firefox scrollbar styling */
+#homepage-widget-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #4a5568 #1e2a3a;
+}
+
+/* Sidebar button styling */
 .widget-sidebar-list button {
   display: block;
   width: 100%;
@@ -458,6 +464,7 @@ body, html {
   border-radius: 4px;
   margin-bottom: 4px;
   transition: background 0.2s;
+  padding-bottom: 10px;
 }
 
 .widget-sidebar-list button:hover,
@@ -465,7 +472,7 @@ body, html {
   background: #33415c;
 }
 
-/* Widget highlight animation */
+/* Widget animations and styling */
 @keyframes widget-highlight-pulse {
   0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
   70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
@@ -477,9 +484,11 @@ body, html {
   background-color: rgba(255, 255, 204, 0.3);
 }
 
-/* Home page widget styling */
 .home-page-widget {
   transition: transform 0.2s ease;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .home-page-widget:hover {
@@ -495,67 +504,7 @@ body, html {
   font-size: 0.8em;
 }
 
-/* Ensure sidebar scrolls if it gets too long */
-#sidebar {
-  overflow-y: auto;
-  max-height: 100vh;
-}
-
-/* Custom scrollbar styling for widget navigation */
-#homepage-widget-nav::-webkit-scrollbar {
-  width: 8px;
-}
-
-#homepage-widget-nav::-webkit-scrollbar-track {
-  background: #1e2a3a;
-  border-radius: 4px;
-}
-
-#homepage-widget-nav::-webkit-scrollbar-thumb {
-  background: #4a5568;
-  border-radius: 4px;
-}
-
-#homepage-widget-nav::-webkit-scrollbar-thumb:hover {
-  background: #5a6578;
-}
-
-/* Firefox scrollbar styling */
-#homepage-widget-nav {
-  scrollbar-width: thin;
-  scrollbar-color: #4a5568 #1e2a3a;
-}
-
-/* Category and search container */
-.cat-search-wrapper {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px; /* Increased gap for better spacing */
-}
-
-/* Category dropdown styling */
-.cat-dropdown, 
-#widget-category-select {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background-color: #2c3a4a;
-  color: white;
-  font-size: 0.95em;
-  margin: 0; /* Remove margins for consistent spacing */
-  box-sizing: border-box; /* Ensure padding is included in width */
-}
-
-.cat-dropdown:focus, 
-#widget-category-select:focus,
-#search:focus {
-  border-color: #4d7cc9;
-  outline: none;
-}
-
-/* Sidebar list container */
+/* Sidebar components */
 #sidebar-list {
   flex: 1;
   display: flex;
@@ -563,24 +512,7 @@ body, html {
   overflow: hidden;
 }
 
-/* Sidebar list items */
-.widget-sidebar-list button {
-  display: block;
-  width: 100%;
-  background: none;
-  border: none;
-  color: #fff;
-  text-align: left;
-  padding: 8px 10px;
-  font-size: 0.95em;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-bottom: 4px;
-  transition: background 0.2s;
-  padding-bottom: 10px; /* Slightly more padding for buttons with descriptions */
-}
-
-/* Inline category/description text in sidebar */
+/* Inline category/description text */
 .sidebar-item-info {
   font-size: 0.8em;
   color: #aaa;
@@ -600,7 +532,13 @@ body, html {
   font-style: italic;
 }
 
-/* Remove old unused styles */
+/* Hidden elements */
 .sidebar-category-label {
   display: none;
+}
+
+/* Image handling */
+img {
+  max-width: 100%;
+  height: auto;
 }
