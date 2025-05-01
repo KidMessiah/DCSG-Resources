@@ -20,16 +20,22 @@ function createFlankingWidget(container, options = {}) {
   // --- Constants ---
   const GRID_SIZE = 20;
   // Updated team colors for white background
-  const COLORS = { Ally: 0x00FF00, Enemy: 0xd32f2f, Neutral: 0xbdbdbd };
-  const PALETTE = [1, 2, 3, 4, 5, 6];
+  const COLORS = { 
+    Ally: 0x4CAF50,    // pleasant green
+    Enemy: 0xE57373,   // soft red
+    Neutral: 0xbdbdbd 
+  };
+  const PALETTE = Array.from({length: 8}, (_, i) => i + 1); // Token sizes
   // Set background to white
   const BG_COLOR = 0xffffff;
-  const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, or change it's team.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.";
+  const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, change it's team, or enable 6th sense.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.\n";
   // Palette and UI constants - reduce margin between palette and grid
   const PALETTE_MARGIN = 10, PALETTE_BTN = 44, PALETTE_GAP = 8;
   const PROMPT_W = 220, PROMPT_H = 110;
   const CONTEXT_MENU_W = 120, CONTEXT_MENU_ITEM_H = 30;
   const COLUMN_MARGIN = 10;
+  // Add a constant for the eye emoji
+  const EYE_EMOJI = "👁️";
 
   // --- State ---
   let tokens = [];
@@ -37,9 +43,11 @@ function createFlankingWidget(container, options = {}) {
   let draggingToken = null, nextTokenId = 1;
   let teamPromptToken = null;
   let cellPx = 32, gridOrigin = {x:0, y:0};
-  let tempGhost = null;
+  // let tempGhost = null; // Removed unused variable
   let contextMenu = null;
   let contextMenuTarget = null;
+  // Add diagonal flanking state
+  let diagonalFlankingEnabled = false;
   
   // UI state management
   const UIState = {
@@ -138,7 +146,11 @@ function createFlankingWidget(container, options = {}) {
   // Example Scenarios Button Container
   const exampleContainer = new PIXI.Container();
   app.stage.addChild(exampleContainer);
-
+  
+  // Create diagonal flanking toggle button
+  const diagonalToggleContainer = new PIXI.Container();
+  app.stage.addChild(diagonalToggleContainer);
+  
   // --- Palette ---
   const palette = new PIXI.Container();
   app.stage.addChild(palette);
@@ -219,6 +231,16 @@ function createFlankingWidget(container, options = {}) {
     const RIGHT_COLUMN_WIDTH = columns.rightColumn;
     const CENTER_COLUMN_WIDTH = columns.centerColumn;
     
+    // Scale fonts based on available space, but never larger than original size
+    const fontScaleFactor = Math.min(
+      1.0, // Cap at original size (maximum scale of 100%)
+      Math.max(0.7, availableWidth / 900), // Scale down for narrow widths, min 70%
+      Math.max(0.7, availableHeight / 700) // Scale down for short heights, min 70%
+    );
+    
+    // Update text styles based on scale factor
+    updateTextStyles(fontScaleFactor, LEFT_COLUMN_WIDTH, RIGHT_COLUMN_WIDTH);
+    
     // Position the palette at the top center
     const leftEdge = LEFT_COLUMN_WIDTH + COLUMN_MARGIN;
     updatePaletteLayout(CENTER_COLUMN_WIDTH, leftEdge);
@@ -260,9 +282,121 @@ function createFlankingWidget(container, options = {}) {
     rightText.y = rightTitle.y + rightTitle.height + 8;
     rightText.style.wordWrapWidth = RIGHT_COLUMN_WIDTH - 20;
 
-    // Position and setup example buttons
-    setupExampleButtons(rightColumnX, CENTER_COLUMN_WIDTH, rightText.y + rightText.height + 20, RIGHT_COLUMN_WIDTH);
+    // Position diagonal toggle button below rightText in the right column
+    setupDiagonalToggleButton(rightColumnX, rightText.y + rightText.height + 20, RIGHT_COLUMN_WIDTH);
+
+    // Position and setup example buttons below the instruction text in the left column
+    setupExampleButtons(10, instr.y + instr.height + 20, LEFT_COLUMN_WIDTH);
   }
+
+  // Setup diagonal toggle button
+  function setupDiagonalToggleButton(rightColumnX, startY, rightColumnWidth) {
+    diagonalToggleContainer.removeChildren();
+    
+    const buttonWidth = rightColumnWidth - 20;
+    const buttonHeight = 40;
+    const buttonX = rightColumnX + 10;
+    
+    // Create toggle button
+    const toggleButton = new PIXI.Graphics();
+    toggleButton.beginFill(diagonalFlankingEnabled ? 0x5c6bc0 : 0x9e9e9e)
+      .drawRoundedRect(0, 0, buttonWidth, buttonHeight, 8)
+      .endFill();
+    
+    toggleButton.x = buttonX;
+    toggleButton.y = startY;
+    toggleButton.interactive = true;
+    toggleButton.buttonMode = true;
+    
+    const toggleLabel = new PIXI.Text("Diagonal Flanking: " + 
+      (diagonalFlankingEnabled ? "ON" : "OFF"), {
+      fontSize: 16,
+      fill: 0xffffff,
+      fontWeight: 'bold'
+    });
+    
+    toggleLabel.x = (buttonWidth - toggleLabel.width) / 2;
+    toggleLabel.y = (buttonHeight - toggleLabel.height) / 2;
+    toggleButton.addChild(toggleLabel);
+    
+    toggleButton.on('mouseover', () => {
+      toggleButton.alpha = 0.8;
+    });
+    
+    toggleButton.on('mouseout', () => {
+      toggleButton.alpha = 1;
+    });
+    
+    toggleButton.on('pointerdown', () => {
+      diagonalFlankingEnabled = !diagonalFlankingEnabled;
+      toggleButton.clear();
+      toggleButton.beginFill(diagonalFlankingEnabled ? 0x5c6bc0 : 0x9e9e9e)
+        .drawRoundedRect(0, 0, buttonWidth, buttonHeight, 8)
+        .endFill();
+      
+      toggleLabel.text = "Diagonal Flanking: " + 
+        (diagonalFlankingEnabled ? "ON" : "OFF");
+      toggleLabel.x = (buttonWidth - toggleLabel.width) / 2;
+      
+      // Update flanking visualization if currently showing
+      if (currentState === UIState.HOVERING) {
+        hideFlanking();
+        
+        const hoveredToken = tokens.find(t => 
+          t.sprite && t.sprite.filters !== null);
+        
+        if (hoveredToken) {
+          showFlanking(hoveredToken);
+        }
+      }
+      
+      // Update the rules text
+      updateRulesText();
+    });
+    
+    diagonalToggleContainer.addChild(toggleButton);
+  }
+
+  // Update the rules text based on diagonal flanking mode
+  function updateRulesText() {
+    let rulesText = "Variant Flanking - Small\n\n" +
+      "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n";
+    
+    if (diagonalFlankingEnabled) {
+      rulesText += "• When you have an ally on the opposite side or diagonal of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
+        "• For each additional ally on any other side or diagonal of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
+    } else {
+      rulesText += "• When you have an ally on the opposite side of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
+        "• For each additional ally on any other side of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
+    }
+    
+    rulesText += "• You lose all flanking bonuses if you are being flanked yourself, as your attention is divided.\n\n" +
+      "• Creatures with blindsight, tremorsense, or truesight are immune to flanking, as their heightened senses prevent them from being caught off guard.";
+    
+    rightText.text = rulesText;
+  }
+
+  // New function to update text styles based on container size
+  function updateTextStyles(scaleFactor, leftColumnWidth, rightColumnWidth) {
+    // Update title fonts
+    leftTitle.style.fontSize = Math.floor(22 * scaleFactor);
+    rightTitle.style.fontSize = Math.floor(22 * scaleFactor);
+    
+    // Update instruction text
+    instr.style.fontSize = Math.floor(16 * scaleFactor);
+    instr.style.lineHeight = Math.floor(22 * scaleFactor);
+    instr.style.wordWrapWidth = leftColumnWidth - 20;
+    
+    // Update rules text
+    rightText.style.fontSize = Math.floor(16 * scaleFactor);
+    rightText.style.lineHeight = Math.floor(22 * scaleFactor);
+    rightText.style.wordWrapWidth = rightColumnWidth - 20;
+    
+    // Always keep the original text content
+    instr.text = INSTR_TEXT;
+    
+    // Remove redundant text assignment - the rightText already has the correct content
+}
 
   function updatePaletteLayout(centerWidth, leftEdge) {
     palette.removeChildren();
@@ -378,7 +512,7 @@ function createFlankingWidget(container, options = {}) {
     cellPx = Math.floor(Math.min(maxGridWidth / GRID_SIZE, maxGridHeight / GRID_SIZE));
     
     const gridWidth = cellPx * GRID_SIZE;
-    const gridHeight = cellPx * GRID_SIZE;
+    // const gridHeight = cellPx * GRID_SIZE; // Removed unused variable
     
     gridOrigin.x = leftEdge + ((centerWidth - gridWidth) / 2);
     gridOrigin.y = paletteBottom + 10; // Reduced vertical gap
@@ -432,6 +566,16 @@ function createFlankingWidget(container, options = {}) {
     sprite.buttonMode = true;
     sprite.tokenId = token.id;
     
+    // Add eye emoji if token has 6th sense
+    if (token.sixthSense) {
+      const eye = new PIXI.Text(EYE_EMOJI, {
+        fontSize: Math.max(16, Math.floor(cellPx * 0.4)),
+      });
+      eye.x = (token.size * cellPx) - eye.width - 4;
+      eye.y = 2;
+      sprite.addChild(eye);
+    }
+    
     // Use sortableChildren to ensure proper z-indexing
     tokenLayer.addChild(sprite);
     token.sprite = sprite;
@@ -461,7 +605,7 @@ function createFlankingWidget(container, options = {}) {
       hideFlanking();
       
       const origPos = { x: sprite.x, y: sprite.y };
-      const mouseDownTime = Date.now();
+      // const mouseDownTime = Date.now(); // Removed unused variable
       let hasMoved = false;
       const dragThreshold = 3;
       
@@ -595,7 +739,8 @@ function createFlankingWidget(container, options = {}) {
 
   function addToken(size, row, col, team = null) {
     const id = nextTokenId++;
-    const token = { id, size, team, row, col, sprite: null };
+    // Add sixthSense property (default to false)
+    const token = { id, size, team, row, col, sprite: null, sixthSense: false };
     tokens.push(token);
     
     updateTokenAppearance(token);
@@ -622,7 +767,8 @@ function createFlankingWidget(container, options = {}) {
     currentState = UIState.CONTEXT_MENU;
     contextMenuTarget = token;
     
-    const menuItems = ['Delete', 'Swap Team'];
+    // Add "6th Sense" to menu options
+    const menuItems = ['Delete', 'Swap Team', '6th Sense'];
     const menuHeight = CONTEXT_MENU_ITEM_H * menuItems.length;
     
     const menu = new PIXI.Container();
@@ -652,7 +798,13 @@ function createFlankingWidget(container, options = {}) {
       itemBg.buttonMode = true;
       itemContainer.addChild(itemBg);
       
-      const text = new PIXI.Text(item, {
+      // Customize the 6th Sense menu item based on current state
+      let itemText = item;
+      if (item === '6th Sense' && contextMenuTarget.sixthSense) {
+        itemText = '✓ 6th Sense';
+      }
+      
+      const text = new PIXI.Text(itemText, {
         fontSize: 14,
         fill: 0x222222
       });
@@ -686,6 +838,17 @@ function createFlankingWidget(container, options = {}) {
           } else if (item === 'Swap Team') {
             contextMenuTarget.team = contextMenuTarget.team === 'Ally' ? 'Enemy' : 'Ally';
             updateTokenAppearance(contextMenuTarget);
+          } else if (item === '6th Sense') {
+            // Toggle sixth sense status
+            contextMenuTarget.sixthSense = !contextMenuTarget.sixthSense;
+            updateTokenAppearance(contextMenuTarget);
+            
+            // If we're turning off 6th sense and the token is being hovered,
+            // we need to update the flanking display
+            if (currentState === UIState.HOVERING) {
+              hideFlanking();
+              showFlanking(contextMenuTarget);
+            }
           }
         }
         
@@ -818,7 +981,6 @@ function createFlankingWidget(container, options = {}) {
     
     const isHoveredTokenFlanked = isTokenFlanked(token);
     
-    const opposingTeam = token.team === 'Ally' ? 'Enemy' : 'Ally';
     const adjacentEnemies = findAdjacentEnemies(token);
     
     try {
@@ -826,18 +988,39 @@ function createFlankingWidget(container, options = {}) {
         token.sprite.filters = [
           new PIXI.filters.GlowFilter({
             distance: 8,
-            color: isHoveredTokenFlanked ? 0xd32f2f : 0x1976d2,
+            color: isHoveredTokenFlanked ? 0xd32f2f : token.sixthSense ? 0x9c27b0 : 0x1976d2, // Purple for 6th sense
             outerStrength: 2
           })
         ];
       } else {
-        token.sprite.tint = isHoveredTokenFlanked ? 0xd32f2f : 0x1976d2;
+        token.sprite.tint = isHoveredTokenFlanked ? 0xd32f2f : token.sixthSense ? 0x9c27b0 : 0x1976d2;
       }
     } catch (e) {
-      token.sprite.tint = isHoveredTokenFlanked ? 0xd32f2f : 0x1976d2;
+      token.sprite.tint = isHoveredTokenFlanked ? 0xd32f2f : token.sixthSense ? 0x9c27b0 : 0x1976d2;
     }
 
-    if (isHoveredTokenFlanked) {
+    if (token.sixthSense) {
+      // Add "Unflankable" text for 6th sense tokens
+      const labelContainer = new PIXI.Container();
+      labelContainer.zIndex = 100;
+      
+      const label = new PIXI.Text("UNFLANKABLE", {
+      fontSize: 14, 
+      fill: '#9c27b0', 
+      fontWeight: 'bold', 
+      stroke: '#fff', 
+      strokeThickness: 3
+      });
+      label.x = 0;
+      label.y = -20;
+      label.anchor.set(0.5, 0);
+      labelContainer.addChild(label);
+      
+      labelContainer.x = token.sprite.x + (token.size * cellPx / 2);
+      labelContainer.y = token.sprite.y;
+      
+      overlayLayer.addChild(labelContainer);
+    } else if (isHoveredTokenFlanked) {
       // Create a container to hold both labels to ensure proper positioning
       const labelContainer = new PIXI.Container();
       labelContainer.zIndex = 100; // Ensure labels appear above tokens
@@ -899,6 +1082,31 @@ function createFlankingWidget(container, options = {}) {
     
     if (!isHoveredTokenFlanked) {
       adjacentEnemies.forEach(target => {
+        // Don't show flanking against targets with 6th sense
+        if (target.sixthSense) {
+          // Instead, show they're immune
+          const immuneHighlight = new PIXI.Graphics();
+          immuneHighlight.lineStyle(3, 0x9c27b0) // Purple for immunity
+            .drawRect(0, 0, target.size * cellPx, target.size * cellPx);
+          immuneHighlight.x = target.sprite.x;
+          immuneHighlight.y = target.sprite.y;
+          overlayLayer.addChild(immuneHighlight);
+          
+          const immuneLabel = new PIXI.Text("Immune to flanking", {
+            fontSize: 12, 
+            fill: '#9c27b0', 
+            fontWeight: 'bold', 
+            stroke: '#fff', 
+            strokeThickness: 2
+          });
+          immuneLabel.x = target.sprite.x + (target.size * cellPx / 2);
+          immuneLabel.y = target.sprite.y - 10;
+          immuneLabel.anchor.set(0.5, 1);
+          overlayLayer.addChild(immuneLabel);
+          
+          return;
+        }
+        
         const bonus = calculateFlankingBonus(token, target);
         
         if (bonus > 0) {
@@ -958,12 +1166,27 @@ function createFlankingWidget(container, options = {}) {
     const opposingTeam = token.team === 'Ally' ? 'Enemy' : 'Ally';
     const enemies = tokens.filter(t => t.team === opposingTeam);
     
-    return enemies.filter(enemy => 
-      isAdjacentNorth(token, enemy) || 
-      isAdjacentSouth(token, enemy) || 
-      isAdjacentEast(token, enemy) || 
-      isAdjacentWest(token, enemy)
-    );
+    return enemies.filter(enemy => {
+      // Check cardinal directions first
+      if (isAdjacentNorth(token, enemy) || 
+          isAdjacentSouth(token, enemy) || 
+          isAdjacentEast(token, enemy) || 
+          isAdjacentWest(token, enemy)) {
+        return true;
+      }
+      
+      // Check diagonal directions if enabled
+      if (diagonalFlankingEnabled) {
+        if (isAdjacentNorthEast(token, enemy) ||
+            isAdjacentNorthWest(token, enemy) ||
+            isAdjacentSouthEast(token, enemy) ||
+            isAdjacentSouthWest(token, enemy)) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
   }
 
   function hideFlanking() {
@@ -987,31 +1210,79 @@ function createFlankingWidget(container, options = {}) {
   function isTokenFlanked(token) {
     if (!token || !token.team) return false;
     
+    // Units with 6th sense cannot be flanked
+    if (token.sixthSense) return false;
+    
     const opposingTeam = token.team === 'Ally' ? 'Enemy' : 'Ally';
     const enemies = tokens.filter(t => t.team === opposingTeam);
     
-    const adjacentEnemies = enemies.filter(enemy => 
-      isAdjacentNorth(enemy, token) || 
-      isAdjacentSouth(enemy, token) || 
-      isAdjacentEast(enemy, token) || 
-      isAdjacentWest(enemy, token)
-    );
+    const adjacentEnemies = enemies.filter(enemy => {
+      // Check cardinal directions
+      if (isAdjacentNorth(enemy, token) || 
+          isAdjacentSouth(enemy, token) || 
+          isAdjacentEast(enemy, token) || 
+          isAdjacentWest(enemy, token)) {
+        return true;
+      }
+      
+      // Check diagonal directions if enabled
+      if (diagonalFlankingEnabled) {
+        if (isAdjacentNorthEast(enemy, token) ||
+            isAdjacentNorthWest(enemy, token) ||
+            isAdjacentSouthEast(enemy, token) ||
+            isAdjacentSouthWest(enemy, token)) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
     
+    // Check for opposing enemies
     const hasNorthEnemy = adjacentEnemies.some(e => isAdjacentNorth(e, token));
     const hasSouthEnemy = adjacentEnemies.some(e => isAdjacentSouth(e, token));
     const hasEastEnemy = adjacentEnemies.some(e => isAdjacentEast(e, token));
     const hasWestEnemy = adjacentEnemies.some(e => isAdjacentWest(e, token));
     
-    return (hasNorthEnemy && hasSouthEnemy) || (hasEastEnemy && hasWestEnemy);
+    // Cardinal flanking
+    if ((hasNorthEnemy && hasSouthEnemy) || (hasEastEnemy && hasWestEnemy)) {
+      return true;
+    }
+    
+    // Diagonal flanking if enabled
+    if (diagonalFlankingEnabled) {
+      const hasNorthEastEnemy = adjacentEnemies.some(e => isAdjacentNorthEast(e, token));
+      const hasSouthWestEnemy = adjacentEnemies.some(e => isAdjacentSouthWest(e, token));
+      const hasNorthWestEnemy = adjacentEnemies.some(e => isAdjacentNorthWest(e, token));
+      const hasSouthEastEnemy = adjacentEnemies.some(e => isAdjacentSouthEast(e, token));
+      
+      if ((hasNorthEastEnemy && hasSouthWestEnemy) || 
+          (hasNorthWestEnemy && hasSouthEastEnemy)) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   function calculateFlankingBonus(attacker, target) {
     if (!attacker || !target || attacker.team === target.team) return 0;
     
-    const isAdjacent = isAdjacentNorth(attacker, target) || 
+    // Add check for target with 6th sense - they can't be flanked
+    if (target.sixthSense) return 0;
+    
+    // Check if attacker is adjacent to target (cardinal or diagonal if enabled)
+    let isAdjacent = isAdjacentNorth(attacker, target) || 
                       isAdjacentSouth(attacker, target) || 
                       isAdjacentEast(attacker, target) || 
                       isAdjacentWest(attacker, target);
+    
+    if (!isAdjacent && diagonalFlankingEnabled) {
+      isAdjacent = isAdjacentNorthEast(attacker, target) || 
+                    isAdjacentNorthWest(attacker, target) || 
+                    isAdjacentSouthEast(attacker, target) || 
+                    isAdjacentSouthWest(attacker, target);
+    }
     
     if (!isAdjacent) return 0;
     
@@ -1025,25 +1296,55 @@ function createFlankingWidget(container, options = {}) {
       !isTokenFlanked(t)
     );
     
+    // Check cardinal directions
     const isNorth = isAdjacentNorth(attacker, target);
     const isSouth = isAdjacentSouth(attacker, target);
     const isEast = isAdjacentEast(attacker, target);
     const isWest = isAdjacentWest(attacker, target);
     
+    // Check diagonal directions if enabled
+    const isNorthEast = diagonalFlankingEnabled && isAdjacentNorthEast(attacker, target);
+    const isNorthWest = diagonalFlankingEnabled && isAdjacentNorthWest(attacker, target);
+    const isSouthEast = diagonalFlankingEnabled && isAdjacentSouthEast(attacker, target);
+    const isSouthWest = diagonalFlankingEnabled && isAdjacentSouthWest(attacker, target);
+    
+    // Check if allies are on the opposite sides
     const hasSouthAlly = friendlyUnits.some(ally => isAdjacentSouth(ally, target));
     const hasNorthAlly = friendlyUnits.some(ally => isAdjacentNorth(ally, target));
     const hasWestAlly = friendlyUnits.some(ally => isAdjacentWest(ally, target));
     const hasEastAlly = friendlyUnits.some(ally => isAdjacentEast(ally, target));
     
+    // Check diagonal allies if enabled
+    const hasNorthEastAlly = diagonalFlankingEnabled && 
+      friendlyUnits.some(ally => isAdjacentNorthEast(ally, target));
+    const hasNorthWestAlly = diagonalFlankingEnabled && 
+      friendlyUnits.some(ally => isAdjacentNorthWest(ally, target));
+    const hasSouthEastAlly = diagonalFlankingEnabled && 
+      friendlyUnits.some(ally => isAdjacentSouthEast(ally, target));
+    const hasSouthWestAlly = diagonalFlankingEnabled && 
+      friendlyUnits.some(ally => isAdjacentSouthWest(ally, target));
+    
     let bonus = 0;
+    
+    // Check for opposing allies on cardinal directions
     if ((isNorth && hasSouthAlly) || (isSouth && hasNorthAlly) || 
         (isEast && hasWestAlly) || (isWest && hasEastAlly)) {
       bonus = 2;
     }
     
+    // Check for opposing allies on diagonal directions if enabled
+    if (bonus === 0 && diagonalFlankingEnabled) {
+      if ((isNorthEast && hasSouthWestAlly) || (isSouthWest && hasNorthEastAlly) || 
+          (isNorthWest && hasSouthEastAlly) || (isSouthEast && hasNorthWestAlly)) {
+        bonus = 2;
+      }
+    }
+    
+    // If we have a base flanking bonus, check for additional sides
     if (bonus === 2) {
       let additionalSides = 0;
       
+      // Check additional cardinal sides
       if (!isNorth && !isSouth) {
         if (hasNorthAlly) additionalSides++;
         if (hasSouthAlly) additionalSides++;
@@ -1052,6 +1353,19 @@ function createFlankingWidget(container, options = {}) {
       if (!isEast && !isWest) {
         if (hasEastAlly) additionalSides++;
         if (hasWestAlly) additionalSides++;
+      }
+      
+      // Check additional diagonal sides if enabled
+      if (diagonalFlankingEnabled) {
+        if (!isNorthEast && !isSouthWest) {
+          if (hasNorthEastAlly) additionalSides++;
+          if (hasSouthWestAlly) additionalSides++;
+        }
+        
+        if (!isNorthWest && !isSouthEast) {
+          if (hasNorthWestAlly) additionalSides++;
+          if (hasSouthEastAlly) additionalSides++;
+        }
       }
       
       bonus += Math.min(additionalSides, 2);
@@ -1089,6 +1403,27 @@ function createFlankingWidget(container, options = {}) {
   function overlapsVertically(token1, token2) {
     return !(token1.row >= token2.row + token2.size || 
              token1.row + token1.size <= token2.row);
+  }
+  
+  // Add diagonal adjacency check functions
+  function isAdjacentNorthEast(token1, token2) {
+    return token1.row + token1.size === token2.row && 
+           token1.col + token1.size === token2.col;
+  }
+  
+  function isAdjacentNorthWest(token1, token2) {
+    return token1.row + token1.size === token2.row && 
+           token1.col === token2.col + token2.size;
+  }
+  
+  function isAdjacentSouthEast(token1, token2) {
+    return token1.row === token2.row + token2.size && 
+           token1.col + token1.size === token2.col;
+  }
+  
+  function isAdjacentSouthWest(token1, token2) {
+    return token1.row === token2.row + token2.size && 
+           token1.col === token2.col + token2.size;
   }
 
   // --- Responsive Resize ---
@@ -1143,42 +1478,69 @@ function createFlankingWidget(container, options = {}) {
   drawGrid();
 
   // --- Example Scenarios ---
-  function setupExampleButtons(rightColumnX, centerWidth, startY, rightColumnWidth) {
+  // Redesigned example buttons function to create 2 columns of smaller buttons
+  function setupExampleButtons(leftX, startY, columnWidth) {
     exampleContainer.removeChildren();
     
-    const buttonWidth = rightColumnWidth - 20;
-    const buttonHeight = 40;
-    const buttonGap = 10;
-    const buttonX = rightColumnX + 10;
+    // Calculate button size for a 2-column layout
+    const buttonGap = 10; // Gap between buttons
+    const buttonWidth = Math.floor((columnWidth - 30) / 2); // 2 columns with margins
+    const buttonHeight = 30; // Smaller button height
     
     const examples = [
-      { label: "Example 1: Basic Flanking", scenario: loadExample1 },
-      { label: "Example 2: Multi-Side Flanking", scenario: loadExample2 },
-      { label: "Example 3: Same-Side Allies", scenario: loadExample3 },
-      { label: "Example 4: Counter-Flanking", scenario: loadExample4 }
+      { label: "Basic Flanking", scenario: loadExample1 },
+      { label: "Multi-Side", scenario: loadExample2 },
+      { label: "Same-Side Allies", scenario: loadExample3 },
+      { label: "Counter-Flanking", scenario: loadExample4 },
+      { label: "6th Sense", scenario: loadExample5 },
+      { label: "Diagonal", scenario: loadExample6 }
     ];
     
+    // Calculate how many rows we need
+    const numRows = Math.ceil(examples.length / 2);
+    
+    // Ensure there's enough vertical space
+    const availableHeight = app.screen.height - startY - 20; // 20px margin
+    const neededHeight = numRows * (buttonHeight + buttonGap) - buttonGap;
+    const scaleFactor = (neededHeight > availableHeight) ? availableHeight / neededHeight : 1;
+    
+    // Scale button size if needed, but not larger than original
+    const scaledButtonHeight = Math.max(20, Math.floor(buttonHeight * scaleFactor));
+    const scaledButtonGap = Math.max(5, Math.floor(buttonGap * scaleFactor));
+    const scaledFontSize = Math.max(10, Math.floor(12 * scaleFactor));
+    
+    // Create each button in a grid layout
     examples.forEach((example, index) => {
+      // Calculate row and column for this button
+      const row = Math.floor(index / 2);
+      const col = index % 2;
+      
+      // Calculate button position
+      const buttonX = leftX + (col * (buttonWidth + buttonGap));
+      const buttonY = startY + (row * (scaledButtonHeight + scaledButtonGap));
+      
       const button = new PIXI.Graphics();
       button.beginFill(0x4e6b9f)
-        .drawRoundedRect(0, 0, buttonWidth, buttonHeight, 8)
+        .drawRoundedRect(0, 0, buttonWidth, scaledButtonHeight, 6)
         .endFill();
       
       button.x = buttonX;
-      button.y = startY + (index * (buttonHeight + buttonGap));
+      button.y = buttonY;
       button.interactive = true;
       button.buttonMode = true;
       
+      // Create button label with smaller font
       const label = new PIXI.Text(example.label, {
-        fontSize: 16,
+        fontSize: scaledFontSize,
         fill: 0xffffff,
         fontWeight: 'bold'
       });
       
       label.x = (buttonWidth - label.width) / 2;
-      label.y = (buttonHeight - label.height) / 2;
+      label.y = (scaledButtonHeight - label.height) / 2;
       button.addChild(label);
       
+      // Add hover effects
       button.on('mouseover', () => {
         button.alpha = 0.8;
       });
@@ -1187,6 +1549,7 @@ function createFlankingWidget(container, options = {}) {
         button.alpha = 1;
       });
       
+      // Add click handler
       button.on('pointerdown', () => {
         clearTokens();
         example.scenario();
@@ -1194,6 +1557,16 @@ function createFlankingWidget(container, options = {}) {
       
       exampleContainer.addChild(button);
     });
+    
+    // Add a title above the buttons
+    const examplesTitle = new PIXI.Text("Example Scenarios", {
+      fontSize: 16,
+      fill: '#222',
+      fontWeight: 'bold'
+    });
+    examplesTitle.x = leftX;
+    examplesTitle.y = startY - 25;
+    exampleContainer.addChild(examplesTitle);
   }
 
   function clearTokens() {
@@ -1205,7 +1578,7 @@ function createFlankingWidget(container, options = {}) {
   // Example 1: Basic flanking with two allies on opposite sides
   function loadExample1() {
     // Add a 2x2 enemy in the middle
-    const enemyToken = addToken(2, 9, 9, 'Enemy');
+    addToken(2, 9, 9, 'Enemy');
     
     // Add allies on opposite sides
     addToken(1, 8, 9, 'Ally');  // Tim
@@ -1248,6 +1621,36 @@ function createFlankingWidget(container, options = {}) {
     
     // Add an enemy ally that flanks one of our allies
     addToken(1, 7, 9, 'Enemy'); // Cave Drake's ally
+  }
+
+  // Add the new example function
+  function loadExample5() {
+    // Add a 2x2 enemy in the middle with 6th sense
+    const enemyToken = addToken(2, 9, 9, 'Enemy');
+    enemyToken.sixthSense = true;
+    updateTokenAppearance(enemyToken);
+    
+    // Add allies on opposite sides trying to flank
+    addToken(1, 8, 9, 'Ally');  // Tim
+    addToken(1, 11, 9, 'Ally'); // Jerry
+    addToken(1, 9, 8, 'Ally');  // Clarence
+    addToken(1, 9, 11, 'Ally'); // Claus
+  }
+
+  // Add a new example for diagonal flanking
+  function loadExample6() {
+    // First enable diagonal flanking if not already enabled
+    if (!diagonalFlankingEnabled) {
+      diagonalFlankingEnabled = true;
+      updateLayout(); // This will update the toggle button and rules text
+    }
+    
+    // Add a 2x2 enemy in the middle
+    const enemyToken = addToken(2, 9, 9, 'Enemy');
+    
+    // Add allies on diagonal corners to demonstrate diagonal flanking
+    addToken(1, 8, 8, 'Ally');  // Northwest
+    addToken(1, 11, 11, 'Ally'); // Southeast
   }
 
   // --- Public API ---
@@ -1298,39 +1701,85 @@ window.renderWidget = function(container) {
     container.style.position = 'relative';
   }
 
-  // Calculate minimum height needed for the text columns above the grid
+  // Calculate minimum height needed for the content
   function getMinHeight() {
-    // Estimate: titles + instructions + right text + palette + margins
-    // These values are based on font sizes and spacing in the widget
-    const titleHeight = 32; // leftTitle/rightTitle
-    const instrLines = 9; // INSTR_TEXT lines
-    const instrLineHeight = 22;
-    const instrHeight = instrLines * instrLineHeight;
-    const rightTextLines = 15;
-    const rightTextLineHeight = 22;
-    const rightTextHeight = rightTextLines * rightTextLineHeight;
-    const paletteHeight = 44 + 12; // PALETTE_BTN + margin
-    const buttonHeight = 40 * 4 + 10 * 3; // 4 example buttons + gaps
-    const verticalMargins = 48 + 20 + 20; // top, between, bottom
-
-    // Take the max of left and right columns
-    const leftCol = titleHeight + instrHeight + verticalMargins + paletteHeight;
-    const rightCol = titleHeight + rightTextHeight + buttonHeight + verticalMargins;
-
-    // Add some extra for grid and padding
-    return Math.max(leftCol, rightCol) + 500;
+    const gridSize = 20; // The grid is 20x20
+    const cellPxEstimate = 32; // Estimated cell size
+    const gridHeight = gridSize * cellPxEstimate;
+    
+    // Calculate text heights more accurately
+    const titleHeight = 32; 
+    const instrHeight = 220; // Reduced from previous estimate
+    const rightTextHeight = 320; // Reduced from previous estimate
+    const paletteHeight = 54; // PALETTE_BTN + margin
+    const buttonHeight = 200; // 4 example buttons with gaps
+    const verticalMargins = 60; // Reduced margins
+    
+    // Take the max height needed for content beside the grid
+    const contentHeight = Math.max(
+      titleHeight + instrHeight + paletteHeight + verticalMargins,
+      titleHeight + rightTextHeight + buttonHeight + verticalMargins
+    );
+    
+    // Compare with grid height and take the greater one
+    // Add less extra padding (150px instead of 500px)
+    return Math.max(contentHeight, gridHeight);
   }
 
-  if (!container.style.height) {
-    const minHeight = getMinHeight();
-    container.style.height = minHeight + 'px';
-    container.style.minHeight = minHeight + 'px';
-  }
+  // Set initial height, but we'll adjust it dynamically
+  const minHeight = getMinHeight();
+  container.style.height = minHeight + 'px';
+  container.style.minHeight = minHeight + 'px';
 
   const widget = createFlankingWidget(container);
+  
+  // Add a function to adjust the height based on actual content
+  function adjustHeight() {
+    // Find the actual bottom-most element in the widget
+    const stage = widget.app.stage;
+    let maxY = 0;
+    
+    // Check all stage children to find the bottom-most element
+    function findMaxY(container) {
+      if (!container || !container.children) return;
+      
+      container.children.forEach(child => {
+        // Calculate the bottom edge of this element
+        const childBottomY = child.y + (child.height || 0);
+        maxY = Math.max(maxY, childBottomY);
+        
+        // Recursively check children
+        if (child.children && child.children.length > 0) {
+          findMaxY(child);
+        }
+      });
+    }
+    
+    findMaxY(stage);
+    
+    // Add a small padding (30px) to the bottom
+    const newHeight = maxY + 30;
+    
+    // Only adjust if the new height is valid and different from current
+    if (newHeight > 200 && Math.abs(container.clientHeight - newHeight) > 20) {
+      container.style.height = newHeight + 'px';
+    }
+  }
+  
+  // Call adjustHeight after initial render and on resize
+  setTimeout(adjustHeight, 100);
+  
+  // Override the original resize function to include height adjustment
+  const originalResize = widget.resize;
+  widget.resize = function() {
+    originalResize();
+    setTimeout(adjustHeight, 100);
+  };
 
+  // @ts-ignore
   window.resetFlankingWidget = function() {
     widget.resetState();
+    setTimeout(adjustHeight, 100);
     return "Widget state has been reset";
   };
 
