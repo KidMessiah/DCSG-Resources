@@ -28,7 +28,7 @@ function createFlankingWidget(container, options = {}) {
   const PALETTE = Array.from({length: 8}, (_, i) => i + 1); // Token sizes
   // Set background to white
   const BG_COLOR = 0xffffff;
-  const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, change it's team, or enable 6th sense.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.\n";
+  const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games and includes a diagonal flanking option, I do not allow it, but it is there for use in games that do.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, change it's team, or enable 6th sense.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.\n";
   // Palette and UI constants - reduce margin between palette and grid
   const PALETTE_MARGIN = 10, PALETTE_BTN = 44, PALETTE_GAP = 8;
   const PROMPT_W = 220, PROMPT_H = 110;
