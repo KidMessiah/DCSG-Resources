@@ -42,17 +42,17 @@
     "type": "video"
   },
   {
-    "title": "Sample PDF",
+    "title": "The Illrigger v2.4",
     "description": "An example PDF document.",
     "path": "pdfs/Illrigger v2.4.pdf",
-    "category": "PDFs",
+    "category": "Class",
     "type": "pdf"
   },
   {
-    "title": "Rulebook",
+    "title": "Asnar The Last Kingdom",
     "description": "Rules for the game.",
     "path": "pdfs/A Hole in the Ground - Asnar The Last Kingdom.pdf",
-    "category": "Rules",
+    "category": "Compendium",
     "type": "pdf"
   },
   {

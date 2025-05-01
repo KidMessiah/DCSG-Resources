@@ -79,7 +79,7 @@ function renderSidebar() {
   // Only rebuild the basic structure if it doesn't exist
   if (!document.getElementById('section-slideout')) {
     sb.innerHTML = `
-      <h1>AwkwardDM Resources</h1>
+      <h1>HHG Resources</h1>
       <div class="section-slideout" id="section-slideout"></div>
       <div class="cat-search-wrapper" id="cat-search-wrapper"></div>
       <div id="sidebar-list"></div>
@@ -383,7 +383,7 @@ function renderSidebarList() {
       }
       
       if (item.description) {
-        if (infoText) infoText += ' - ';
+        if (infoText) infoText += ': ';
         infoText += truncateText(item.description, 25);
       }
       
@@ -463,7 +463,7 @@ async function renderContent() {
   if (state.currentType === 'Home' || state.currentType === 'All') {
     c.innerHTML = `
       <div class="home-page">
-        <h2>Welcome to AwkwardDM Resources</h2>
+        <h2>Welcome to HHG Resources</h2>
         <p>This is your resource hub. Use the navigation to browse videos, PDFs, rules, and more.</p>
         <img src="images/home-banner.jpg" alt="Banner" class="home-banner">
         <div>

@@ -1,13 +1,13 @@
 [
-  { "name": "Spinning Widget", "src": "widgets/spinning.js" },
-  { "name": "Flanking Widget", "src": "widgets/flanking.js" },
-  { "name": "Pulse Widget", "src": "widgets/pulse.js" },
-  { "name": "Fade Widget", "src": "widgets/fade.js" },
-  { "name": "Slide Widget", "src": "widgets/slide.js" },
-  { "name": "Rotate Cube Widget", "src": "widgets/rotate-cube.js" },
-  { "name": "Shrink & Grow Widget", "src": "widgets/shrink-grow.js" },
-  { "name": "Flip Widget", "src": "widgets/flip.js" },
-  { "name": "Zigzag Widget", "src": "widgets/zigzag.js" },
-  { "name": "Expand Bar Widget", "src": "widgets/expand-bar.js" },
-  { "name": "Shake Widget", "src": "widgets/shake.js" }
+  { "name": "Spinning Widget", "src": "widgets/spinning.js", "category": "Animation" },
+  { "name": "Flanking Tool", "src": "widgets/flanking.js", "category": "Small" },
+  { "name": "Pulse Widget", "src": "widgets/pulse.js", "category": "Animation" },
+  { "name": "Fade Widget", "src": "widgets/fade.js", "category": "Animation" },
+  { "name": "Slide Widget", "src": "widgets/slide.js", "category": "Animation" },
+  { "name": "Rotate Cube Widget", "src": "widgets/rotate-cube.js", "category": "3D" },
+  { "name": "Shrink & Grow Widget", "src": "widgets/shrink-grow.js", "category": "Animation" },
+  { "name": "Flip Widget", "src": "widgets/flip.js", "category": "Animation" },
+  { "name": "Zigzag Widget", "src": "widgets/zigzag.js", "category": "Movement" },
+  { "name": "Expand Bar Widget", "src": "widgets/expand-bar.js", "category": "UI" },
+  { "name": "Shake Widget", "src": "widgets/shake.js", "category": "Animation" }
 ]
