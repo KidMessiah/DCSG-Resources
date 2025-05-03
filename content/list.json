@@ -1,205 +1,31 @@
 [
-  {
-    "title": "Local MP4 Video",
-    "description": "A local video file.",
-    "path": "videos/bearger.mp4",
-    "category": "Viidides",
-    "type": "video"
-  },
-  {
-    "title": "Local MP4 Video",
-    "description": "A local video file.",
-    "path": "videos/bearger.mp4",
-    "category": "Viidides",
-    "type": "video"
-  },
-  {
-    "title": "Local MP4 Video",
-    "description": "A local video file.",
-    "path": "videos/bearger.mp4",
-    "category": "Viidides",
-    "type": "video"
-  },
-  {
-    "title": "Youtube Video",
-    "description": "A local video file.",
-    "path": "https://www.youtube.com/embed/1g1bJ7PYz_0",
-    "category": "Videos",
-    "type": "video"
-  },
-  {
-    "title": "Sample YouTube Video",
-    "description": "An example YouTube video.",
-    "path": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    "category": "Videos",
-    "type": "video"
-  },
-  {
-    "title": "Local MP4 Video",
-    "description": "A local video file.",
-    "path": "videos/sample.mp4",
-    "category": "Videos",
-    "type": "video"
-  },
-  {
-    "title": "The Illrigger v2.4",
-    "description": "An example PDF document.",
-    "path": "pdfs/Illrigger v2.4.pdf",
-    "category": "Class",
-    "type": "pdf"
-  },
-  {
-    "title": "Asnar The Last Kingdom",
-    "description": "Rules for the game.",
-    "path": "pdfs/A Hole in the Ground - Asnar The Last Kingdom.pdf",
-    "category": "Compendium",
-    "type": "pdf"
-  },
-  {
-    "title": "The Voxid",
-    "description": "Patreon Content",
-    "path": "pdfs/Aberrant Expansion - The Voxid.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "The Suryan Pantheon",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/The Suryan Pantheon.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "The Seraphic War",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/The Seraphic War.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Suggestion Month",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Suggestion Month.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Seeds of Schism",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Seeds of Schism (Full Release).pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Rock and Stone",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Rockandstone.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Rituals of the Moon",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Rituals of the Moon (Player).pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Relics of the 8 Kings",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Relics of the 8 Kings.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Prehistoric West",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Prehistoric West.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Mos Khayag",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Mos KhayagBWPrinterFriendly.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Immortal Interlink",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Immortal Interlinkv2.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Forbidden Arcana",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Forbidden Arcana.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Feybound Secrets",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Feybound Secrets.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "East Negresh",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/East Negresh.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Duran's Dawn",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Duran's Dawn.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Draconic Dossier",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Draconic Dossier.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Chrono Cultivar",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Chrono Cultivar.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Chroma Splash",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Chroma.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Carapace Codex",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Carapace Codex.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Brightmane's Adventuring College",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/BAA v1.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
-    "title": "Official Website",
-    "description": "Visit the official site.",
-    "path": "https://example.com",
-    "category": "Websites",
-    "type": "website"
-  }
+  { "title": "Local MP4 Video", "description": "A local video file.", "path": "videos/bearger.mp4", "category": "Viidides", "type": "video" },
+  { "title": "Local MP4 Video", "description": "A local video file.", "path": "videos/bearger.mp4", "category": "Viidides", "type": "video" },
+  { "title": "Local MP4 Video", "description": "A local video file.", "path": "videos/bearger.mp4", "category": "Viidides", "type": "video" },
+  { "title": "Youtube Video", "description": "A local video file.", "path": "https://www.youtube.com/embed/1g1bJ7PYz_0", "category": "Videos", "type": "video" },
+  { "title": "Sample YouTube Video", "description": "An example YouTube video.", "path": "https://www.youtube.com/embed/dQw4w9WgXcQ", "category": "Videos", "type": "video" },
+  { "title": "Local MP4 Video", "description": "A local video file.", "path": "videos/sample.mp4", "category": "Videos", "type": "video" },
+  { "title": "The Illrigger v2.4", "description": "An example PDF document.", "path": "pdfs/Illrigger v2.4.pdf", "category": "Class", "type": "pdf" },
+  { "title": "Asnar The Last Kingdom", "description": "Rules for the game.", "path": "pdfs/A Hole in the Ground - Asnar The Last Kingdom.pdf", "category": "Compendium", "type": "pdf" },
+  { "title": "The Voxid", "description": "Patreon Content", "path": "pdfs/Aberrant Expansion - The Voxid.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "The Suryan Pantheon", "description": "A Patreon PDF document.", "path": "pdfs/The Suryan Pantheon.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "The Seraphic War", "description": "A Patreon PDF document.", "path": "pdfs/The Seraphic War.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Suggestion Month", "description": "A Patreon PDF document.", "path": "pdfs/Suggestion Month.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Seeds of Schism", "description": "A Patreon PDF document.", "path": "pdfs/Seeds of Schism (Full Release).pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Rock and Stone", "description": "A Patreon PDF document.", "path": "pdfs/Rockandstone.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Rituals of the Moon", "description": "A Patreon PDF document.", "path": "pdfs/Rituals of the Moon (Player).pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Relics of the 8 Kings", "description": "A Patreon PDF document.", "path": "pdfs/Relics of the 8 Kings.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Prehistoric West", "description": "A Patreon PDF document.", "path": "pdfs/Prehistoric West.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Mos Khayag", "description": "A Patreon PDF document.", "path": "pdfs/Mos KhayagBWPrinterFriendly.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Immortal Interlink", "description": "A Patreon PDF document.", "path": "pdfs/Immortal Interlinkv2.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Forbidden Arcana", "description": "A Patreon PDF document.", "path": "pdfs/Forbidden Arcana.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Feybound Secrets", "description": "A Patreon PDF document.", "path": "pdfs/Feybound Secrets.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "East Negresh", "description": "A Patreon PDF document.", "path": "pdfs/East Negresh.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Duran's Dawn", "description": "A Patreon PDF document.", "path": "pdfs/Duran's Dawn.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Draconic Dossier", "description": "A Patreon PDF document.", "path": "pdfs/Draconic Dossier.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Chrono Cultivar", "description": "A Patreon PDF document.", "path": "pdfs/Chrono Cultivar.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Chroma Splash", "description": "A Patreon PDF document.", "path": "pdfs/Chroma.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Carapace Codex", "description": "A Patreon PDF document.", "path": "pdfs/Carapace Codex.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Brightmane's Adventuring College", "description": "A Patreon PDF document.", "path": "pdfs/BAA v1.pdf", "category": "Patreon", "type": "pdf" },
+  { "title": "Official Website", "description": "Visit the official site.", "path": "https://example.com", "category": "Websites", "type": "website" }
 ]

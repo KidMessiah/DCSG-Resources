@@ -31,7 +31,7 @@ function createFlankingWidget(container, options = {}) {
   const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games and includes a diagonal flanking option, I do not allow it, but it is there for use in games that do.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, change it's team, enable 6th sense, toggle diagonal flanking, clear the grid or view one of the few examples provided.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.\n";
   // Palette and UI constants - reduce margin between palette and grid
   const PALETTE_MARGIN = 10, PALETTE_BTN = 44, PALETTE_GAP = 8;
-  const PROMPT_W = 220, PROMPT_H = 110;
+  const PROMPT_W = 240, PROMPT_H = 110;
   const CONTEXT_MENU_W = 150, CONTEXT_MENU_ITEM_H = 30;
   const COLUMN_MARGIN = 10;
   // Add a constant for the eye emoji
