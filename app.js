@@ -79,7 +79,7 @@ function renderSidebar() {
   // Only rebuild the basic structure if it doesn't exist
   if (!document.getElementById('section-slideout')) {
     sb.innerHTML = `
-      <h1>HHG Resources</h1>
+      <h1>AwkwardDM Resources</h1>
       <div class="section-slideout" id="section-slideout"></div>
       <div class="cat-search-wrapper" id="cat-search-wrapper"></div>
       <div id="sidebar-list"></div>
@@ -138,13 +138,6 @@ function renderWidgetsSidebar() {
   widgetNav.id = 'homepage-widget-nav';
   widgetNav.className = 'widget-sidebar-list';
   
-  // Set scrollable container styles
-  widgetNav.style.maxHeight = '50vh'; // Limit height to 50% of viewport height
-  widgetNav.style.overflowY = 'auto';
-  widgetNav.style.paddingRight = '8px'; // Add some padding for the scrollbar
-  
-  // Remove the scrollbar style creation - now in style.css
-  
   // Display filtered widgets
   if (state.filteredWidgets.length === 0) {
     const noWidgets = document.createElement('p');
@@ -178,22 +171,9 @@ function renderWidgetsSidebar() {
         btn.appendChild(infoLine);
       }
       
-      // Button styling
-      btn.style.display = 'block';
-      btn.style.width = '100%';
-      btn.style.background = 'none';
-      btn.style.border = 'none';
-      btn.style.color = '#fff';
-      btn.style.textAlign = 'left';
-      btn.style.padding = '8px 10px'; // Updated padding for consistency
-      btn.style.cursor = 'pointer';
-      btn.style.borderRadius = '4px';
-      
-      // REMOVE the old category indicator code - we now use the infoLine above
-      
       // Button events
-      btn.onmouseover = () => btn.style.background = '#33415c';
-      btn.onmouseout = () => btn.style.background = 'none';
+      btn.onmouseover = () => {};
+      btn.onmouseout = () => {};
       btn.onclick = () => {
         const el = document.getElementById(`homepage-widget-${originalIndex}`);
         if (el) {
@@ -241,7 +221,9 @@ function renderSectionSlideout() {
     btn.onclick = () => {
       state.selected = null;
       state.currentType = type;
-      state.currentCategory = 'All';
+      if (!state.categories.includes(state.currentCategory)) {
+        state.currentCategory = 'All';
+      }
       state.search = '';
       renderSidebar();
       renderContent();
@@ -267,8 +249,6 @@ function renderCategoryAndSearch() {
   searchInput.placeholder = 'Search...';
   searchInput.value = state.search;
   
-  // Remove inline styles - will use CSS for consistent styling
-  
   searchInput.oninput = e => {
     clearTimeout(state.debounceTimer);
     state.debounceTimer = setTimeout(() => {
@@ -277,9 +257,13 @@ function renderCategoryAndSearch() {
       if (state.currentType === 'Home' || state.currentType === 'All') {
         applyWidgetFilters();
       } else {
-        state.selected = null;
-        renderSidebar();
-        renderContent();
+        // Only update the sidebar list, don't clear the selection
+        renderSidebarList(); // Only update the list part
+        
+        // Only render content if nothing is currently selected
+        if (!state.selected) {
+          renderContent();
+        }
       }
     }, 180);
   };
@@ -297,13 +281,11 @@ function renderCategoryAndSearch() {
     
     const categoryLabel = document.createElement('h3');
     categoryLabel.textContent = 'Categories';
-    categoryLabel.style.marginTop = '16px'; // Space between search and categories
+    categoryLabel.className = 'category-label';
     wrapper.appendChild(categoryLabel);
     
     const catSelect = document.createElement('select');
     catSelect.className = 'cat-dropdown';
-    
-    // Remove inline styles - will use CSS for consistent styling
     
     for (const cat of state.categories) {
       const opt = document.createElement('option');
@@ -316,7 +298,7 @@ function renderCategoryAndSearch() {
     catSelect.onchange = e => {
       state.currentCategory = e.target.value;
       state.selected = null;
-      renderSidebar();
+      renderSidebarList(); // Only update the list part
       renderContent();
     };
     
@@ -350,19 +332,13 @@ function renderSidebarList() {
     // Create content navigation with same style as widget navigation
     const contentNav = document.createElement('div');
     contentNav.className = 'widget-sidebar-list';
-    contentNav.style.maxHeight = '50vh';
-    contentNav.style.overflowY = 'auto';
-    contentNav.style.paddingRight = '8px';
     
     for (const item of items) {
       const btn = document.createElement('button');
       
       // Create a container for title and close button
       const titleContainer = document.createElement('div');
-      titleContainer.style.display = 'flex';
-      titleContainer.style.justifyContent = 'space-between';
-      titleContainer.style.width = '100%';
-      titleContainer.style.alignItems = 'center';
+      titleContainer.className = 'title-container';
       
       // Title text
       const titleText = document.createElement('span');
@@ -373,9 +349,7 @@ function renderSidebarList() {
       if (state.selected && state.selected.item && state.selected.item.path === item.path) {
         const closeBtn = document.createElement('span');
         closeBtn.textContent = '❌';
-        closeBtn.style.marginLeft = '8px';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.fontSize = '14px';
+        closeBtn.className = 'close-btn';
         closeBtn.title = `Close ${state.currentType.toUpperCase()}`;
         closeBtn.onclick = (e) => {
           e.stopPropagation(); // Prevent triggering the parent button click
@@ -388,23 +362,7 @@ function renderSidebarList() {
       
       btn.appendChild(titleContainer);
       btn.title = item.description || '';
-      
-      // Add styling consistent with widget sidebar buttons
-      btn.style.display = 'block';
-      btn.style.width = '100%';
-      btn.style.background = 'none';
-      btn.style.border = 'none';
-      btn.style.color = '#fff';
-      btn.style.textAlign = 'left';
-      btn.style.padding = '8px 10px'; // Updated padding for consistency
-      btn.style.cursor = 'pointer';
-      btn.style.borderRadius = '4px';
-      
-      // Add active class for selected item
-      if (state.selected && state.selected.item && state.selected.item.path === item.path) {
-        btn.className = 'active';
-        btn.style.background = '#33415c';
-      }
+      btn.className = state.selected && state.selected.item && state.selected.item.path === item.path ? 'active' : '';
       
       // Add category and description inline
       let infoText = '';
@@ -425,12 +383,8 @@ function renderSidebarList() {
       }
       
       // Add hover effects
-      btn.onmouseover = () => btn.style.background = '#33415c';
-      btn.onmouseout = () => {
-        if (!(state.selected && state.selected.item && state.selected.item.path === item.path)) {
-          btn.style.background = 'none';
-        }
-      };
+      btn.onmouseover = () => {};
+      btn.onmouseout = () => {};
       
       btn.onclick = () => {
         state.selected = { type: state.currentType, item };
@@ -481,12 +435,11 @@ async function renderContent() {
   if (state.currentType === 'Home' || state.currentType === 'All') {
     c.innerHTML = `
       <div class="home-page">
-        <h2>Welcome to HHG Resources</h2>
-        <p>This is your resource hub. Use the navigation to browse videos, PDFs, rules, and more.</p>
-        <img src="images/home-banner.jpg" alt="Banner" class="home-banner">
+        <h2>Welcome to AwkwardDM Resources</h2>
+        <p>This is my hub for all the resources you should need to play in my DnD games!<br>Use the sidebar for navigation, there you'll find video tutorials, PDFs (that include my patreon content) and 3rd  party sites that can be helpful for DMs and players alike!</p>
         <div>
-          <h3>About</h3>
-          <p>Put your custom text here. You can add more images, links, or any HTML you want.</p>
+          <h3>THE HOMEPAGE</h3>
+          <p>The homepage is a reference for all my homebrew rules for my players, and anyone who might want to use my homebrew. Below you will find a set of home rules, and a list of homebrew I like and allow my players to use at the table.<br><b>Additionally!</b> Each of the rules below include a small tag next to them that represent their impact on the game. Some of the changes I like at my table are very high impact, and as such I suggest reading over them carefully before dropping them into your game. You can filter by this impact in the side bar, as well as search for a particular rule you might be looking for!</p>
         </div>
         <div id="homepage-js-widgets"></div>
       </div>
@@ -500,47 +453,30 @@ async function renderContent() {
       div.id = `homepage-widget-${idx}`;
       div.className = 'home-page-widget';
       
-      // Add category label to widget
-      if (widget.category) {
-        const categoryLabel = document.createElement('div');
-        categoryLabel.className = 'widget-category-label';
-        categoryLabel.textContent = widget.category;
-        categoryLabel.style.marginBottom = '5px';
-        categoryLabel.style.fontWeight = 'bold';
-        categoryLabel.style.color = '#666';
-        div.appendChild(categoryLabel);
-      }
+      // Create title container for heading and category - now centered
+      const titleContainer = document.createElement('div');
+      titleContainer.className = 'widget-title-container';
       
       // Add name heading
       const nameHeading = document.createElement('h4');
       nameHeading.textContent = widget.name;
-      nameHeading.style.margin = '5px 0';
-      div.appendChild(nameHeading);
+      nameHeading.className = 'widget-name';
+      titleContainer.appendChild(nameHeading);
+      
+      // Add category label next to the title
+      if (widget.category) {
+        const categoryLabel = document.createElement('span');
+        categoryLabel.className = 'widget-category-label';
+        categoryLabel.textContent = widget.category;
+        titleContainer.appendChild(categoryLabel);
+      }
+      
+      div.appendChild(titleContainer);
       
       // Container for widget content
       const widgetContent = document.createElement('div');
       widgetContent.className = 'widget-content-container';
       div.appendChild(widgetContent);
-      
-      // Styling
-      div.style.display = 'block';
-      div.style.width = '100%';
-      div.style.margin = '32px 0';
-      div.style.padding = '15px';
-      // Add these explicit overrides to prevent any hover effects or shadows
-      div.style.boxShadow = 'none';
-      div.style.transition = 'none';
-      
-      // Add inline styles to ensure no hover effects from CSS
-      const styleTag = document.createElement('style');
-      styleTag.textContent = `
-        .home-page-widget:hover {
-          box-shadow: none !important;
-          transform: none !important;
-          transition: none !important;
-        }
-      `;
-      document.head.appendChild(styleTag);
       
       widgetsDiv.appendChild(div);
 
@@ -553,14 +489,14 @@ async function renderContent() {
             try {
               window.renderWidget(widgetContent);
             } catch (e) {
-              widgetContent.innerHTML = `<div style="color:red;">Widget error: ${e.message}</div>`;
+              widgetContent.innerHTML = `<div class="widget-error">Widget error: ${escapeHtml(e.message)}</div>`;
             }
             delete window.renderWidget;
           }
           resolve();
         };
         script.onerror = () => {
-          widgetContent.innerHTML = `<div style="color:red;">Failed to load widget: ${widget.src}</div>`;
+          widgetContent.innerHTML = `<div class="widget-error">Failed to load widget: ${widget.src}</div>`;
           resolve();
         };
         document.body.appendChild(script);
@@ -618,7 +554,16 @@ function renderMedia(item) {
 
 // --- Helpers ---
 function capitalize(str) {
-  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+  if (!str) return '';
+  
+  // Handle special abbreviations that should be all uppercase
+  const uppercaseTerms = ['pdf', 'dm', 'gm', 'npc', 'pc'];
+  if (uppercaseTerms.includes(str.toLowerCase())) {
+    return str.toUpperCase();
+  }
+  
+  // Default behavior: capitalize first letter
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function isHomepage() {
@@ -630,6 +575,62 @@ function isHomepage() {
 document.addEventListener('DOMContentLoaded', async () => {
   cacheDom();
   await loadItems();
+  
+  // Load saved state if available
+  if (window.loadStateFromStorage) {
+    window.loadStateFromStorage();
+    console.log("State loaded from storage");
+    
+    // Attach state change listeners if available
+    if (window.attachStateChangeListeners) {
+      window.attachStateChangeListeners();
+      console.log("State change listeners attached");
+    }
+    
+    // Apply UI changes after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      if (window.applyStateToUI) {
+        window.applyStateToUI();
+        console.log("UI state applied");
+      }
+    }, 100);
+  }
+  
   renderSidebar();
   renderContent();
+  
+  // Save initial state if no prior state exists
+  if (window.saveStateToStorage && !localStorage.getItem('ADMResourcesState')) {
+    window.saveStateToStorage();
+    console.log("Initial state saved");
+  }
 });
+
+// Add this helper function for the state persistence module
+window.initializeApp = function() {
+  renderSidebar();
+  renderContent();
+};
+
+// Add state change handlers to key functions
+const originalRenderSidebar = renderSidebar;
+renderSidebar = function() {
+  originalRenderSidebar();
+  if (window.handleStateChange) {
+    window.handleStateChange();
+  }
+};
+
+const originalRenderContent = renderContent;
+renderContent = function() {
+  originalRenderContent();
+  if (window.handleStateChange) {
+    window.handleStateChange();
+  }
+};
+
+// When rendering the flanking widget, just call renderWidget as usual.
+// The widget will use your CSS for layout, headings, and paragraphs.
+
+const container = document.getElementById('your-flanking-widget-container');
+window.renderWidget(container);

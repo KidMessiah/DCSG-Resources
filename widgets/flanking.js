@@ -28,15 +28,15 @@ function createFlankingWidget(container, options = {}) {
   const PALETTE = Array.from({length: 8}, (_, i) => i + 1); // Token sizes
   // Set background to white
   const BG_COLOR = 0xffffff;
-  const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games and includes a diagonal flanking option, I do not allow it, but it is there for use in games that do.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, change it's team, or enable 6th sense.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.\n";
+  const INSTR_TEXT = "This tool simulates the rules I use for flanking in my games and includes a diagonal flanking option, I do not allow it, but it is there for use in games that do.\n\nIn order to begin, drag a token from the palette labelled 1x1, 2x2, etc. onto the grid and choose it's team\n\nOnce you have a token on the grid, you can do a few things:\n   1. Right click it to delete it, change it's team, enable 6th sense, toggle diagonal flanking, clear the grid or view one of the few examples provided.\n   2. Hover it to see if it is able to flank any units it is adjacent to.\n   3. Drag it around to see how it interacts with other units.\n";
   // Palette and UI constants - reduce margin between palette and grid
   const PALETTE_MARGIN = 10, PALETTE_BTN = 44, PALETTE_GAP = 8;
   const PROMPT_W = 220, PROMPT_H = 110;
-  const CONTEXT_MENU_W = 120, CONTEXT_MENU_ITEM_H = 30;
+  const CONTEXT_MENU_W = 150, CONTEXT_MENU_ITEM_H = 30;
   const COLUMN_MARGIN = 10;
   // Add a constant for the eye emoji
   const EYE_EMOJI = "👁️";
-
+  
   // --- State ---
   let tokens = [];
   let gridMap = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill(null));
@@ -48,6 +48,164 @@ function createFlankingWidget(container, options = {}) {
   let contextMenuTarget = null;
   // Add diagonal flanking state
   let diagonalFlankingEnabled = false;
+  // Debug utilities
+  const DebugUtils = {
+    // Store references to important containers
+    containers: {},
+    // Enable/disable debug mode
+    enabled: true,
+    
+    // Initialize debug utilities
+    init: function(app, containers) {
+      this.app = app;
+      this.containers = containers;
+      
+      // Add to window for console access
+      window.pixiDebug = this;
+      console.log("PixiJS Debug utilities available. Use pixiDebug.help() for available commands");
+    },
+    
+    // Display help information
+    help: function() {
+      console.log(`
+PixiJS Debug Commands:
+  pixiDebug.list()                  - List all main containers
+  pixiDebug.inspect(container)      - Inspect a container's properties
+  pixiDebug.dimensions(container)   - Show dimensions and positions
+  pixiDebug.tree(container, depth)  - Show container hierarchy
+  pixiDebug.highlight(container)    - Visually highlight an element
+  pixiDebug.enable()                - Enable detailed debug logging
+  pixiDebug.disable()               - Disable debug logging
+      `);
+    },
+    
+    // List all available containers
+    list: function() {
+      console.log("Available containers:");
+      for (const [name, container] of Object.entries(this.containers)) {
+        console.log(`- ${name}`);
+      }
+      console.log("Access with: pixiDebug.containers.containerName");
+    },
+    
+    // Inspect a container's properties
+    inspect: function(container) {
+      if (!container) {
+        console.error("No container provided. Try one of these:");
+        this.list();
+        return;
+      }
+      
+      const props = {
+        position: { x: container.x, y: container.y },
+        dimensions: { width: container.width, height: container.height },
+        scale: { x: container.scale.x, y: container.scale.y },
+        visible: container.visible,
+        alpha: container.alpha,
+        children: container.children?.length || 0,
+        interactive: container.interactive
+      };
+      
+      console.log("Container properties:", props);
+      console.log("Raw container:", container);
+    },
+    
+    // Show dimensions and position info
+    dimensions: function(container) {
+      if (!container) {
+        console.error("No container provided");
+        return;
+      }
+      
+      console.log(`
+Container Dimensions:
+  Position: (${container.x}, ${container.y})
+  Width: ${container.width}
+  Height: ${container.height}
+  Global bounds: ${JSON.stringify(container.getBounds())}
+  Children: ${container.children?.length || 0}
+      `);
+      
+      // If container has children, show their basic info too
+      if (container.children && container.children.length > 0) {
+        console.log("Children dimensions:");
+        container.children.forEach((child, i) => {
+          console.log(`  Child ${i}: (${child.x}, ${child.y}) ${child.width}x${child.height}`);
+        });
+      }
+    },
+    
+    // Show container hierarchy
+    tree: function(container = this.app.stage, depth = 0, maxDepth = 3) {
+      if (!container) return;
+      
+      if (depth === 0) {
+        console.log("Container hierarchy:");
+      }
+      
+      const indent = "  ".repeat(depth);
+      const name = container.name || `(${container.constructor.name})`;
+      const details = `${container.width}x${container.height} @ (${container.x},${container.y})`;
+      
+      console.log(`${indent}${name} - ${details}`);
+      
+      if (depth < maxDepth && container.children && container.children.length > 0) {
+        container.children.forEach(child => {
+          this.tree(child, depth + 1, maxDepth);
+        });
+      } else if (container.children && container.children.length > 0) {
+        console.log(`${indent}  ... (${container.children.length} more children)`);
+      }
+    },
+    
+    // Highlight a container visually
+    highlight: function(container) {
+      if (!container) {
+        console.error("No container provided");
+        return;
+      }
+      
+      // Create highlight
+      const bounds = container.getBounds();
+      const highlight = new PIXI.Graphics();
+      highlight.lineStyle(2, 0xff0000)
+        .drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
+      
+      this.app.stage.addChild(highlight);
+      
+      // Remove highlight after 2 seconds
+      setTimeout(() => {
+        if (highlight.parent) {
+          highlight.parent.removeChild(highlight);
+        }
+      }, 2000);
+      
+      console.log(`Highlighted container at (${bounds.x}, ${bounds.y}) with size ${bounds.width}x${bounds.height}`);
+    },
+    
+    // Enable detailed debug mode
+    enable: function() {
+      this.enabled = true;
+      console.log("Debug mode enabled - will log detailed information");
+    },
+    
+    // Disable debug mode
+    disable: function() {
+      this.enabled = false;
+      console.log("Debug mode disabled");
+    },
+    
+    // Log message only if debug is enabled
+    log: function(message, data) {
+      if (this.enabled) {
+        if (data) {
+          console.log(`[PixiDebug] ${message}`, data);
+        } else {
+          console.log(`[PixiDebug] ${message}`);
+        }
+      }
+    }
+  };
   
   // UI state management
   const UIState = {
@@ -58,10 +216,70 @@ function createFlankingWidget(container, options = {}) {
     CONTEXT_MENU: 'context-menu'
   };
   let currentState = UIState.IDLE;
+  let contextSubmenuOpen = null;
+
+  // --- Create HTML Structure ---
+  // Create widget container if it doesn't exist
+  container.classList.add('flanking-widget-container');
+  
+  // Create the three-column layout
+  const widgetContentDiv = document.createElement('div');
+  widgetContentDiv.className = 'flanking-widget-content';
+  container.appendChild(widgetContentDiv);
+  
+  // Create left text column
+  const leftColumnDiv = document.createElement('div');
+  leftColumnDiv.className = 'flanking-widget-left-column';
+  
+  const leftTitleH3 = document.createElement('h3');
+  leftTitleH3.textContent = 'Flanking Tool';
+  leftColumnDiv.appendChild(leftTitleH3);
+  
+  const leftTextDiv = document.createElement('div');
+  leftTextDiv.className = 'widget-content-container';
+  leftTextDiv.innerHTML = INSTR_TEXT.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+  leftTextDiv.innerHTML = '<p>' + leftTextDiv.innerHTML + '</p>';
+  leftColumnDiv.appendChild(leftTextDiv);
+  
+  // Create center column for Pixi canvas
+  const centerColumnDiv = document.createElement('div');
+  centerColumnDiv.className = 'flanking-widget-center-column';
+  
+  const canvasContainerDiv = document.createElement('div');
+  canvasContainerDiv.className = 'flanking-widget-canvas-container';
+  centerColumnDiv.appendChild(canvasContainerDiv);
+  
+  // Create right text column
+  const rightColumnDiv = document.createElement('div');
+  rightColumnDiv.className = 'flanking-widget-right-column';
+  
+  const rightTitleH3 = document.createElement('h3');
+  rightTitleH3.textContent = 'Flanking Rules';
+  rightColumnDiv.appendChild(rightTitleH3);
+  
+  const rightTextDiv = document.createElement('div');
+  rightTextDiv.className = 'widget-content-container';
+  
+  // Initial rules text
+  let rulesText = "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n";
+  rulesText += "• When you have an ally on the opposite side of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n";
+  rulesText += "• For each additional ally on any other side of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
+  rulesText += "• You lose all flanking bonuses if you are being flanked yourself, as your attention is divided.\n\n";
+  rulesText += "• Creatures with blindsight, tremorsense, or truesight are immune to flanking, as their heightened senses prevent them from being caught off guard.";
+  
+  rightTextDiv.innerHTML = rulesText.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+  rightTextDiv.innerHTML = '<p>' + rightTextDiv.innerHTML + '</p>';
+  rightColumnDiv.appendChild(rightTextDiv);
+  
+  // Add columns to content div
+  widgetContentDiv.appendChild(leftColumnDiv);
+  widgetContentDiv.appendChild(centerColumnDiv);
+  widgetContentDiv.appendChild(rightColumnDiv);
 
   // --- PixiJS Setup ---
-  const initialWidth = container.clientWidth || options.width || 600;
-  const initialHeight = container.clientHeight || options.height || 800;
+  const initialWidth = canvasContainerDiv.clientWidth || options.width || 600;
+  // Reduce initial height to be more proportional to the content
+  const initialHeight = canvasContainerDiv.clientHeight || options.height || 600;
   
   const app = new PIXI.Application({
     width: initialWidth,
@@ -75,7 +293,7 @@ function createFlankingWidget(container, options = {}) {
   app.view.style.display = 'block';
   app.view.style.width = '100%';
   app.view.style.height = '100%';
-  container.appendChild(app.view);
+  canvasContainerDiv.appendChild(app.view);
   
   // Prevent default context menu
   app.view.addEventListener('contextmenu', e => e.preventDefault());
@@ -220,181 +438,149 @@ function createFlankingWidget(container, options = {}) {
       }
     });
     
-    const availableWidth = app.screen.width;
-    const availableHeight = app.screen.height;
+    // Use the container width rather than screen width
+    const availableWidth = canvasContainerDiv.clientWidth;
+    // Calculate a more appropriate height based on content needs
+    const gridSize = Math.min(availableWidth * 1); // Limit maximum grid area width
+    const cellSize = gridSize / GRID_SIZE;
+    const gridPixelSize = cellSize * GRID_SIZE;
+    const paletteHeight = 60; // Height of the palette area
     
-    // Calculate columns based on 1/3 division
-    const columns = calculateColumnSizes(availableWidth);
-    
-    const LEFT_COLUMN_WIDTH = columns.leftColumn;
-    const RIGHT_COLUMN_WIDTH = columns.rightColumn;
-    const CENTER_COLUMN_WIDTH = columns.centerColumn;
-    
-    // Scale fonts based on available space, but never larger than original size
-    const fontScaleFactor = Math.min(
-      1.0, // Cap at original size (maximum scale of 100%)
-      Math.max(0.7, availableWidth / 900), // Scale down for narrow widths, min 70%
-      Math.max(0.7, availableHeight / 700) // Scale down for short heights, min 70%
-    );
-    
-    // Update text styles based on scale factor
-    updateTextStyles(fontScaleFactor, LEFT_COLUMN_WIDTH, RIGHT_COLUMN_WIDTH);
-    
-    // Position the palette at the top center
-    const leftEdge = LEFT_COLUMN_WIDTH + COLUMN_MARGIN;
-    updatePaletteLayout(CENTER_COLUMN_WIDTH, leftEdge);
-    
-    // Calculate grid metrics - reduce space between palette and grid
-    const paletteBottom = palette.y + palette.height + 10; // Reduced margin
-    const gridAreaHeight = availableHeight - paletteBottom - 20;
-    
-    updateGridMetrics(CENTER_COLUMN_WIDTH, gridAreaHeight, paletteBottom, leftEdge);
-    
-    // Create column backgrounds (light gray)
-    const leftBg = new PIXI.Graphics();
-    leftBg.beginFill(0xffffff, 1)
-      .drawRect(0, 0, LEFT_COLUMN_WIDTH, app.screen.height)
-      .endFill();
-    leftBg.columnBackground = 'left';
-    app.stage.addChildAt(leftBg, 0);
-    
-    const rightColumnX = leftEdge + CENTER_COLUMN_WIDTH + COLUMN_MARGIN;
-    const rightBg = new PIXI.Graphics();
-    rightBg.beginFill(0xffffff, 1)
-      .drawRect(rightColumnX, 0, RIGHT_COLUMN_WIDTH, app.screen.height)
-      .endFill();
-    rightBg.columnBackground = 'right';
-    app.stage.addChildAt(rightBg, 0);
-    
-    // Position text elements
-    instr.x = 10;
-    instr.y = 48;
-    instr.style.wordWrapWidth = LEFT_COLUMN_WIDTH - 20;
-
-    leftTitle.x = 10;
-    leftTitle.y = 10;
-
-    rightTitle.x = rightColumnX + 10;
-    rightTitle.y = 10;
-
-    rightText.x = rightColumnX + 10;
-    rightText.y = rightTitle.y + rightTitle.height + 8;
-    rightText.style.wordWrapWidth = RIGHT_COLUMN_WIDTH - 20;
-
-    // Position diagonal toggle button below rightText in the right column
-    setupDiagonalToggleButton(rightColumnX, rightText.y + rightText.height + 20, RIGHT_COLUMN_WIDTH);
-
-    // Position and setup example buttons below the instruction text in the left column
-    setupExampleButtons(10, instr.y + instr.height + 20, LEFT_COLUMN_WIDTH);
-  }
-
-  // Setup diagonal toggle button
-  function setupDiagonalToggleButton(rightColumnX, startY, rightColumnWidth) {
-    diagonalToggleContainer.removeChildren();
-    
-    const buttonWidth = rightColumnWidth - 20;
-    const buttonHeight = 40;
-    const buttonX = rightColumnX + 10;
-    
-    // Create toggle button
-    const toggleButton = new PIXI.Graphics();
-    toggleButton.beginFill(diagonalFlankingEnabled ? 0x5c6bc0 : 0x9e9e9e)
-      .drawRoundedRect(0, 0, buttonWidth, buttonHeight, 8)
-      .endFill();
-    
-    toggleButton.x = buttonX;
-    toggleButton.y = startY;
-    toggleButton.interactive = true;
-    toggleButton.buttonMode = true;
-    
-    const toggleLabel = new PIXI.Text("Diagonal Flanking: " + 
-      (diagonalFlankingEnabled ? "ON" : "OFF"), {
-      fontSize: 16,
-      fill: 0xffffff,
-      fontWeight: 'bold'
-    });
-    
-    toggleLabel.x = (buttonWidth - toggleLabel.width) / 2;
-    toggleLabel.y = (buttonHeight - toggleLabel.height) / 2;
-    toggleButton.addChild(toggleLabel);
-    
-    toggleButton.on('mouseover', () => {
-      toggleButton.alpha = 0.8;
-    });
-    
-    toggleButton.on('mouseout', () => {
-      toggleButton.alpha = 1;
-    });
-    
-    toggleButton.on('pointerdown', () => {
-      diagonalFlankingEnabled = !diagonalFlankingEnabled;
-      toggleButton.clear();
-      toggleButton.beginFill(diagonalFlankingEnabled ? 0x5c6bc0 : 0x9e9e9e)
-        .drawRoundedRect(0, 0, buttonWidth, buttonHeight, 8)
-        .endFill();
-      
-      toggleLabel.text = "Diagonal Flanking: " + 
-        (diagonalFlankingEnabled ? "ON" : "OFF");
-      toggleLabel.x = (buttonWidth - toggleLabel.width) / 2;
-      
-      // Update flanking visualization if currently showing
-      if (currentState === UIState.HOVERING) {
-        hideFlanking();
-        
-        const hoveredToken = tokens.find(t => 
-          t.sprite && t.sprite.filters !== null);
-        
-        if (hoveredToken) {
-          showFlanking(hoveredToken);
-        }
-      }
-      
-      // Update the rules text
-      updateRulesText();
-    });
-    
-    diagonalToggleContainer.addChild(toggleButton);
-  }
-
-  // Update the rules text based on diagonal flanking mode
-  function updateRulesText() {
-    let rulesText = "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n";
-    
-    if (diagonalFlankingEnabled) {
-      rulesText += "• When you have an ally on the opposite side or diagonal of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
-        "• For each additional ally on any other side or diagonal of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
-    } else {
-      rulesText += "• When you have an ally on the opposite side of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
-        "• For each additional ally on any other side of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
+    // Calculate the actual height needed and resize the renderer
+    const neededHeight = paletteHeight + gridPixelSize;
+    if (app.renderer.height !== neededHeight) {
+      app.renderer.resize(availableWidth, neededHeight);
     }
     
-    rulesText += "• You lose all flanking bonuses if you are being flanked yourself, as your attention is divided.\n\n" +
-      "• Creatures with blindsight, tremorsense, or truesight are immune to flanking, as their heightened senses prevent them from being caught off guard.";
+    const availableHeight = neededHeight;
     
-    rightText.text = rulesText;
+    // Hide the Pixi text elements since we're using HTML
+    instr.visible = false;
+    leftTitle.visible = false;
+    rightTitle.visible = false;
+    rightText.visible = false;
+    
+    // Update palette layout
+    updatePaletteLayout(availableWidth, 0);
+    
+    // Calculate grid metrics
+    const paletteBottom = palette.y + palette.height + 10;
+    const gridAreaHeight = availableHeight - paletteBottom - 20;
+    
+    updateGridMetrics(availableWidth, gridAreaHeight, paletteBottom, 0);
+    
+    // Draw grid after layout update
+    drawGrid();
   }
 
-  // New function to update text styles based on container size
-  function updateTextStyles(scaleFactor, leftColumnWidth, rightColumnWidth) {
-    // Update title fonts
-    leftTitle.style.fontSize = Math.floor(22 * scaleFactor);
-    rightTitle.style.fontSize = Math.floor(22 * scaleFactor);
+  // Completely revised setupGridClickHandler function
+  function setupGridClickHandler() {
+    // Clear existing handlers
+    app.view.removeEventListener('contextmenu', handleCanvasRightClick);
+    app.view.addEventListener('contextmenu', handleCanvasRightClick);
     
-    // Update instruction text
-    instr.style.fontSize = Math.floor(16 * scaleFactor);
-    instr.style.lineHeight = Math.floor(22 * scaleFactor);
-    instr.style.wordWrapWidth = leftColumnWidth - 20;
+    // Add a separate handler for left clicks to close menus
+    app.view.removeEventListener('click', handleCanvasLeftClick);
+    app.view.addEventListener('click', handleCanvasLeftClick);
     
-    // Update rules text
-    rightText.style.fontSize = Math.floor(16 * scaleFactor);
-    rightText.style.lineHeight = Math.floor(22 * scaleFactor);
-    rightText.style.wordWrapWidth = rightColumnWidth - 20;
+    // Global function to handle left-clicks on the canvas (for closing menus)
+    function handleCanvasLeftClick(e) {
+      // If a context menu is open, close it on any left click
+      if (contextMenu) {
+        // Check if click is inside the menu
+        const rect = app.view.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (app.view.width / rect.width);
+        const y = (e.clientY - rect.top) * (app.view.height / rect.height);
+        
+        const menuBounds = contextMenu.getBounds();
+        
+        // Only close if click is outside menu
+        if (x < menuBounds.x || x > menuBounds.x + menuBounds.width ||
+            y < menuBounds.y || y > menuBounds.y + menuBounds.height) {
+          hideContextMenu();
+        }
+      }
+    }
     
-    // Always keep the original text content
-    instr.text = INSTR_TEXT;
+    // Global function to handle right-clicks on the canvas
+    function handleCanvasRightClick(e) {
+      e.preventDefault();
+      
+      // Close any existing menus first
+      hideContextMenu();
+      
+      // Only process if we're in idle state
+      if (currentState !== UIState.IDLE) return;
+      
+      // Get the click position relative to the canvas
+      const rect = app.view.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (app.view.width / rect.width);
+      const y = (e.clientY - rect.top) * (app.view.height / rect.height);
+      
+      // Check if click is within grid bounds
+      const gridBounds = {
+        x1: gridOrigin.x,
+        y1: gridOrigin.y,
+        x2: gridOrigin.x + (GRID_SIZE * cellPx),
+        y2: gridOrigin.y + (GRID_SIZE * cellPx)
+      };
+      
+      if (x >= gridBounds.x1 && x <= gridBounds.x2 && 
+          y >= gridBounds.y1 && y <= gridBounds.y2) {
+        
+        // Check if click hit a token
+        let hitToken = null;
+        for (const token of tokens) {
+          if (!token.sprite) continue;
+          
+          const tokenBounds = {
+            x1: token.sprite.x,
+            y1: token.sprite.y,
+            x2: token.sprite.x + (token.size * cellPx),
+            y2: token.sprite.y + (token.size * cellPx)
+          };
+          
+          if (x >= tokenBounds.x1 && x <= tokenBounds.x2 && 
+              y >= tokenBounds.y1 && y <= tokenBounds.y2) {
+            hitToken = token;
+            break;
+          }
+        }
+        
+        // If we hit a token, show its context menu, otherwise show the grid context menu
+        showContextMenu(hitToken, x, y);
+      }
+    }
     
-    // Remove redundant text assignment - the rightText already has the correct content
-}
+    // For debugging - create a visual outline of the grid
+    if (DebugUtils.enabled) {
+      // Clear any existing debug outlines
+      app.stage.children.forEach(child => {
+        if (child.isGridOutline) {
+          app.stage.removeChild(child);
+        }
+      });
+      
+      // Create a visible outline of the grid for debugging
+      const gridOutline = new PIXI.Graphics();
+      gridOutline.lineStyle(2, 0x00ff00, 0.5);
+      gridOutline.drawRect(
+        gridOrigin.x, 
+        gridOrigin.y, 
+        GRID_SIZE * cellPx, 
+        GRID_SIZE * cellPx
+      );
+      gridOutline.isGridOutline = true;
+      app.stage.addChild(gridOutline);
+      
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        if (gridOutline.parent) {
+          gridOutline.parent.removeChild(gridOutline);
+        }
+      }, 5000);
+    }
+  }
 
   function updatePaletteLayout(centerWidth, leftEdge) {
     palette.removeChildren();
@@ -504,16 +690,26 @@ function createFlankingWidget(container, options = {}) {
   }
   
   function updateGridMetrics(centerWidth, gridAreaHeight, paletteBottom, leftEdge) {
-    const maxGridWidth = centerWidth;
-    const maxGridHeight = gridAreaHeight;
+    // Prioritize using full width when possible
+    const gridAreaWidth = centerWidth;
     
-    cellPx = Math.floor(Math.min(maxGridWidth / GRID_SIZE, maxGridHeight / GRID_SIZE));
+    // Calculate cell size with priority on width
+    // Use at least 90% of available width, but maintain square cells
+    const cellPxFromWidth = Math.floor(gridAreaWidth / GRID_SIZE);
+    const cellPxFromHeight = Math.floor(gridAreaHeight / GRID_SIZE);
     
+    // Choose the smaller of the two to ensure grid fits within available space
+    cellPx = Math.min(cellPxFromWidth, cellPxFromHeight);
+    
+    // Calculate final grid width - will be square based on cell size
     const gridWidth = cellPx * GRID_SIZE;
-    // const gridHeight = cellPx * GRID_SIZE; // Removed unused variable
     
-    gridOrigin.x = leftEdge + ((centerWidth - gridWidth) / 2);
+    // Center grid horizontally
+    gridOrigin.x = leftEdge + Math.floor((centerWidth - gridWidth) / 2);
     gridOrigin.y = paletteBottom + 10; // Reduced vertical gap
+    
+    // Setup grid click handler for context menu
+    setupGridClickHandler();
   }
 
   // --- Token Management ---
@@ -762,14 +958,46 @@ function createFlankingWidget(container, options = {}) {
 
   // --- Context Menu ---
   function showContextMenu(token, x, y) {
+    // Always ensure any existing menu is closed first
+    hideContextMenu();
+    
     currentState = UIState.CONTEXT_MENU;
     contextMenuTarget = token;
+    contextSubmenuOpen = contextSubmenuOpen || null; // Ensure it's initialized
     
-    // Add "6th Sense" to menu options
-    const menuItems = ['Delete', 'Swap Team', '6th Sense'];
-    const menuHeight = CONTEXT_MENU_ITEM_H * menuItems.length;
+    let menuItems = [];
+    let menuHeight = 0;
     
+    if (token) {
+      // Token-specific menu items
+      menuItems = ['Delete', 'Swap Team', '6th Sense'];
+    } else {
+      // Global menu items (right-click on grid)
+      menuItems = [
+        'Toggle Diagonal Flanking',
+        'Clear Tokens',
+        'Examples ▶',
+      ];
+      
+      // Add submenu items for examples if opened
+      if (contextSubmenuOpen === 'Examples') {
+        menuItems = [
+          'Examples ▼',
+          '  Basic Flanking',
+          '  Multi-Side',
+          '  Same-Side Allies',
+          '  Counter-Flanking',
+          '  6th Sense',
+          '  Diagonal'
+        ];
+      }
+    }
+    
+    menuHeight = CONTEXT_MENU_ITEM_H * menuItems.length;
+    
+    // Create the menu container
     const menu = new PIXI.Container();
+    menu.name = "contextMenu"; // Make it easier to identify
     
     // Light context menu background
     const bg = new PIXI.Graphics()
@@ -779,6 +1007,7 @@ function createFlankingWidget(container, options = {}) {
       .endFill();
     menu.addChild(bg);
     
+    // Make sure menu is fully on screen
     menu.x = Math.min(x, app.screen.width - CONTEXT_MENU_W - 5);
     menu.y = Math.min(y, app.screen.height - menuHeight - 5);
     
@@ -786,32 +1015,50 @@ function createFlankingWidget(container, options = {}) {
       const itemY = index * CONTEXT_MENU_ITEM_H;
       
       const itemContainer = new PIXI.Container();
+      itemContainer.name = `menuItem_${item.replace(/\s+/g, '_')}`;
       itemContainer.y = itemY;
       
+      // Make the entire menu item background clickable with padding
       const itemBg = new PIXI.Graphics()
-        .beginFill(0xf5f5f5, 0.01)
+        .beginFill(0xf5f5f5, 0.01) // Nearly transparent fill
         .drawRect(0, 0, CONTEXT_MENU_W, CONTEXT_MENU_ITEM_H)
         .endFill();
+      
+      // Important: Make the item fully interactive
       itemBg.interactive = true;
       itemBg.buttonMode = true;
       itemContainer.addChild(itemBg);
       
-      // Customize the 6th Sense menu item based on current state
+      // Customize menu item text
       let itemText = item;
-      if (item === '6th Sense' && contextMenuTarget.sixthSense) {
+      
+      // For token context menu
+      if (token && item === '6th Sense' && contextMenuTarget.sixthSense) {
         itemText = '✓ 6th Sense';
       }
       
-      const text = new PIXI.Text(itemText, {
+      // For global context menu
+      if (!token && item === 'Toggle Diagonal Flanking') {
+        itemText = diagonalFlankingEnabled ? '✓ Diagonal Flanking' : 'Diagonal Flanking';
+      }
+      
+      // Indentation for submenu items
+      const isSubmenuItem = itemText.startsWith('  ');
+      const textOffset = isSubmenuItem ? 25 : 10;
+      
+      const text = new PIXI.Text(isSubmenuItem ? itemText.trim() : itemText, {
         fontSize: 14,
         fill: 0x222222
       });
-      text.x = 10;
+      text.x = textOffset;
       text.y = (CONTEXT_MENU_ITEM_H - text.height) / 2;
+      text.interactive = false; // Make sure text doesn't interfere with clicks
       itemContainer.addChild(text);
       
-      itemContainer.action = item;
+      // Store action for easier reference
+      itemBg.menuAction = item;
       
+      // Enhanced hover effect
       itemBg.on('pointerover', () => {
         itemBg.clear()
           .beginFill(0xe0e0e0)
@@ -826,32 +1073,8 @@ function createFlankingWidget(container, options = {}) {
           .endFill();
       });
       
-      itemBg.on('pointerdown', (e) => {
-        if (e.data.originalEvent.button !== 0) return;
-        e.stopPropagation();
-        
-        if (contextMenuTarget) {
-          if (item === 'Delete') {
-            removeToken(contextMenuTarget);
-          } else if (item === 'Swap Team') {
-            contextMenuTarget.team = contextMenuTarget.team === 'Ally' ? 'Enemy' : 'Ally';
-            updateTokenAppearance(contextMenuTarget);
-          } else if (item === '6th Sense') {
-            // Toggle sixth sense status
-            contextMenuTarget.sixthSense = !contextMenuTarget.sixthSense;
-            updateTokenAppearance(contextMenuTarget);
-            
-            // If we're turning off 6th sense and the token is being hovered,
-            // we need to update the flanking display
-            if (currentState === UIState.HOVERING) {
-              hideFlanking();
-              showFlanking(contextMenuTarget);
-            }
-          }
-        }
-        
-        hideContextMenu();
-      });
+      // Improved click handling with safeguards
+      itemBg.on('pointerdown', handleMenuItemClick);
       
       menu.addChild(itemContainer);
     });
@@ -859,38 +1082,144 @@ function createFlankingWidget(container, options = {}) {
     menuLayer.addChild(menu);
     contextMenu = menu;
     
-    app.stage.on('pointerdown', onStageClick);
+    // Add a backup timer to auto-close the menu if it doesn't get closed properly
+    if (window.menuCloseTimer) clearTimeout(window.menuCloseTimer);
+    window.menuCloseTimer = setTimeout(() => {
+      if (currentState === UIState.CONTEXT_MENU && contextMenu) {
+        console.log("[Menu Safeguard] Auto-closing context menu after timeout");
+        hideContextMenu();
+      }
+    }, 30000); // 30 seconds
+  }
+  
+  // Separate function to handle menu item clicks
+  function handleMenuItemClick(e) {
+    if (e.data.originalEvent.button !== 0) return;
+    e.stopPropagation();
+    
+    const item = this.menuAction;
+    const token = contextMenuTarget;
+    
+    // Special case: examples submenu toggle - don't hide menu
+    if (item === 'Examples ▶') {
+      contextSubmenuOpen = 'Examples';
+      
+      // Get current menu position
+      const menuX = contextMenu.x;
+      const menuY = contextMenu.y;
+      
+      showContextMenu(null, menuX, menuY);
+      return;
+    } 
+    
+    if (item === 'Examples ▼') {
+      contextSubmenuOpen = null;
+      hideContextMenu();
+      return;
+    }
+    
+    // Handle example loading with menu closing
+    if (item.startsWith('  ')) {
+      const example = item.trim();
+      
+      // First, ensure menu is hidden
+      hideContextMenu();
+      
+      // Reset context submenu state
+      contextSubmenuOpen = null;
+      
+      // Then clear tokens and load example
+      clearTokens();
+      
+      // Use a tiny timeout to ensure UI updates properly
+      setTimeout(() => {
+        if (example === 'Basic Flanking') loadExample1();
+        else if (example === 'Multi-Side') loadExample2();
+        else if (example === 'Same-Side Allies') loadExample3();
+        else if (example === 'Counter-Flanking') loadExample4();
+        else if (example === '6th Sense') loadExample5();
+        else if (example === 'Diagonal') loadExample6();
+      }, 10);
+      
+      return;
+    }
+    
+    // For standard menu actions, hide menu first then perform action
+    hideContextMenu();
+    
+    // Use a small delay to ensure UI is updated before executing the action
+    setTimeout(() => {
+      // Token context menu actions
+      if (token) {
+        if (item === 'Delete') {
+          removeToken(token);
+        } else if (item === 'Swap Team') {
+          token.team = token.team === 'Ally' ? 'Enemy' : 'Ally';
+          updateTokenAppearance(token);
+        } else if (item === '6th Sense') {
+          token.sixthSense = !token.sixthSense;
+          updateTokenAppearance(token);
+          
+          // Update flanking display if necessary
+          if (currentState === UIState.HOVERING) {
+            hideFlanking();
+            showFlanking(token);
+          }
+        }
+      } 
+      // Global context menu actions
+      else {
+        if (item === 'Toggle Diagonal Flanking') {
+          diagonalFlankingEnabled = !diagonalFlankingEnabled;
+          updateRulesText();
+          
+          // Update flanking visualization if showing
+          if (currentState === UIState.HOVERING) {
+            const hoveredToken = tokens.find(t => 
+              t.sprite && t.sprite.filters !== null);
+            
+            if (hoveredToken) {
+              hideFlanking();
+              showFlanking(hoveredToken);
+            }
+          }
+        } else if (item === 'Clear Tokens') {
+          clearTokens();
+        }
+      }
+    }, 10);
   }
   
   function hideContextMenu() {
+    // Clear auto-close timer if it exists
+    if (window.menuCloseTimer) {
+      clearTimeout(window.menuCloseTimer);
+      window.menuCloseTimer = null;
+    }
+    
     if (contextMenu) {
-      menuLayer.removeChild(contextMenu);
+      // Make sure all menu item listeners are removed
+      contextMenu.children.forEach(child => {
+        if (child.children) {
+          child.children.forEach(grandchild => {
+            if (grandchild.interactive) {
+              grandchild.removeAllListeners();
+            }
+          });
+        }
+      });
+      
+      // Remove from parent if it has one
+      if (contextMenu.parent) {
+        menuLayer.removeChild(contextMenu);
+      }
+      
       contextMenu = null;
       contextMenuTarget = null;
       
-      app.stage.off('pointerup', onStageClick);
-      
+      // Reset state if needed
       if (currentState === UIState.CONTEXT_MENU) {
         currentState = UIState.IDLE;
-      }
-    }
-  }
-  
-  function onStageClick(e) {
-    if (contextMenu) {
-      let isClickInMenu = false;
-      
-      let target = e.target;
-      while (target) {
-        if (target === contextMenu || (target.parent && target.parent === contextMenu)) {
-          isClickInMenu = true;
-          break;
-        }
-        target = target.parent;
-      }
-      
-      if (!isClickInMenu) {
-        hideContextMenu();
       }
     }
   }
@@ -1688,10 +2017,299 @@ function createFlankingWidget(container, options = {}) {
       resize();
     }
   };
+
+  // Initialize debug utilities with references to important containers
+  DebugUtils.init(app, {
+    app: app,
+    stage: app.stage,
+    gridLayer: gridLayer,
+    tokenLayer: tokenLayer,
+    overlayLayer: overlayLayer,
+    promptLayer: promptLayer,
+    menuLayer: menuLayer,
+    exampleContainer: exampleContainer,
+    diagonalToggleContainer: diagonalToggleContainer,
+    palette: palette
+  });
+
+  // Expose debug utilities globally - this is key to making it accessible from console
+  window.pixiDebug = DebugUtils;
+
+  // Make debug utilities available globally before function returns
+  window.pixiDebug = null;  // Initialize it first
+
+  // Call initDebugUtils after we have all the containers set up
+  setTimeout(() => {
+    console.log("Initializing Pixi.js debug utilities...");
+    window.pixiDebug = {
+      // Store references to important containers
+      containers: {
+        app: app,
+        stage: app.stage,
+        gridLayer: gridLayer,
+        tokenLayer: tokenLayer,
+        overlayLayer: overlayLayer,
+        promptLayer: promptLayer,
+        menuLayer: menuLayer,
+        exampleContainer: exampleContainer,
+        diagonalToggleContainer: diagonalToggleContainer,
+        palette: palette
+      },
+      enabled: true,
+      
+      // Display help information
+      help: function() {
+        console.log(`
+PixiJS Debug Commands:
+  pixiDebug.list()                  - List all main containers
+  pixiDebug.inspect(container)      - Inspect a container's properties
+  pixiDebug.dimensions(container)   - Show dimensions and positions
+  pixiDebug.tree(container, depth)  - Show container hierarchy
+  pixiDebug.highlight(container)    - Visually highlight an element
+  pixiDebug.enable()                - Enable detailed debug logging
+  pixiDebug.disable()               - Disable detailed debug logging
+        `);
+      },
+      
+      // List all available containers
+      list: function() {
+        console.log("Available containers:");
+        for (const [name, container] of Object.entries(this.containers)) {
+          console.log(`- ${name}`);
+        }
+        console.log("Access with: pixiDebug.containers.containerName");
+      },
+      
+      // Inspect a container's properties
+      inspect: function(container) {
+        if (!container) {
+          console.error("No container provided. Try one of these:");
+          this.list();
+          return;
+        }
+        
+        const props = {
+          position: { x: container.x, y: container.y },
+          dimensions: { width: container.width, height: container.height },
+          scale: { x: container.scale.x, y: container.scale.y },
+          visible: container.visible,
+          alpha: container.alpha,
+          children: container.children?.length || 0,
+          interactive: container.interactive
+        };
+        
+        console.log("Container properties:", props);
+        console.log("Raw container:", container);
+      },
+      
+      // Show dimensions and position info
+      dimensions: function(container) {
+        if (!container) {
+          console.error("No container provided");
+          return;
+        }
+        
+        console.log(`
+Container Dimensions:
+  Position: (${container.x}, ${container.y})
+  Width: ${container.width}
+  Height: ${container.height}
+  Global bounds: ${JSON.stringify(container.getBounds())}
+  Children: ${container.children?.length || 0}
+        `);
+        
+        // If container has children, show their basic info too
+        if (container.children && container.children.length > 0) {
+          console.log("Children dimensions:");
+          container.children.forEach((child, i) => {
+            console.log(`  Child ${i}: (${child.x}, ${child.y}) ${child.width}x${child.height}`);
+          });
+        }
+      },
+      
+      // Show container hierarchy
+      tree: function(container = this.containers.stage, depth = 0, maxDepth = 3) {
+        if (!container) return;
+        
+        if (depth === 0) {
+          console.log("Container hierarchy:");
+        }
+        
+        const indent = "  ".repeat(depth);
+        const name = container.name || `(${container.constructor.name})`;
+        const details = `${container.width}x${container.height} @ (${container.x},${container.y})`;
+        
+        console.log(`${indent}${name} - ${details}`);
+        
+        if (depth < maxDepth && container.children && container.children.length > 0) {
+          container.children.forEach(child => {
+            this.tree(child, depth + 1, maxDepth);
+          });
+        } else if (container.children && container.children.length > 0) {
+          console.log(`${indent}  ... (${container.children.length} more children)`);
+        }
+      },
+      
+      // Highlight a container visually
+      highlight: function(container) {
+        if (!container) {
+          console.error("No container provided");
+          return;
+        }
+        
+        // Create highlight
+        const bounds = container.getBounds();
+        const highlight = new PIXI.Graphics();
+        highlight.lineStyle(2, 0xff0000)
+          .drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+          .endFill();
+        
+        this.containers.stage.addChild(highlight);
+        
+        // Remove highlight after 2 seconds
+        setTimeout(() => {
+          if (highlight.parent) {
+            highlight.parent.removeChild(highlight);
+          }
+        }, 2000);
+        
+        console.log(`Highlighted container at (${bounds.x}, ${bounds.y}) with size ${bounds.width}x${bounds.height}`);
+      },
+      
+      // Enable detailed debug mode
+      enable: function() {
+        this.enabled = true;
+        console.log("Debug mode enabled - will log detailed information");
+      },
+      
+      // Disable detailed debug mode
+      disable: function() {
+        this.enabled = false;
+        console.log("Debug mode disabled");
+      },
+      
+      // Log message only if debug is enabled
+      log: function(message, data) {
+        if (this.enabled) {
+          if (data) {
+            console.log(`[PixiDebug] ${message}`, data);
+          } else {
+            console.log(`[PixiDebug] ${message}`);
+          }
+        }
+      }
+    };
+    
+    console.log("PixiJS Debug utilities available. Use pixiDebug.help() for available commands");
+  }, 100);
 }
 
 // Make available globally for browser usage
 window.createFlankingWidget = createFlankingWidget;
+
+// Add a simpler, direct debug utility that works immediately
+window.debugPixiElement = function(element) {
+  if (!element) {
+    console.log("Usage: debugPixiElement(pixiElement)");
+    console.log("Example: debugPixiElement(document.querySelector('.flanking-widget-container').__pixiApp.stage)");
+    return;
+  }
+  
+  const result = {
+    position: { x: element.x, y: element.y },
+    dimensions: { width: element.width, height: element.height },
+    scale: { x: element.scale?.x, y: element.scale?.y },
+    visible: element.visible,
+    alpha: element.alpha,
+    children: element.children?.length || 0
+  };
+  
+  console.log("Element properties:", result);
+  
+  if (element.children && element.children.length > 0) {
+    console.log("Children:");
+    element.children.forEach((child, i) => {
+      console.log(`  Child ${i}: ${child.constructor.name} (${child.width}x${child.height} @ ${child.x},${child.y})`);
+    });
+  }
+  
+  return result;
+};
+
+// Add a helper to get the Pixi app
+window.getPixiApp = function() {
+  const container = document.querySelector('.flanking-widget-container');
+  if (container && container.__pixiApp) {
+    console.log("PixiJS app found!");
+    return container.__pixiApp;
+  } else {
+    console.log("No PixiJS app found. Try refreshing the page or check if the widget is loaded.");
+    return null;
+  }
+};
+
+// Useful tree view helper
+window.pixiTree = function(container, depth = 0, maxDepth = 3) {
+  const app = getPixiApp();
+  if (!app) return "No Pixi app found";
+  
+  const target = container || app.stage;
+  
+  if (depth === 0) {
+    console.log("Container hierarchy:");
+  }
+  
+  const indent = "  ".repeat(depth);
+  const name = target.name || `(${target.constructor.name})`;
+  const details = `${target.width}x${target.height} @ (${target.x},${target.y})`;
+  
+  console.log(`${indent}${name} - ${details}`);
+  
+  if (depth < maxDepth && target.children && target.children.length > 0) {
+    target.children.forEach(child => {
+      window.pixiTree(child, depth + 1, maxDepth);
+    });
+  } else if (target.children && target.children.length > 0) {
+    console.log(`${indent}  ... (${target.children.length} more children)`);
+  }
+  
+  return target;
+};
+
+// Highlight helper to visualize element bounds
+window.highlightPixiElement = function(element) {
+  const app = getPixiApp();
+  if (!app || !element) {
+    console.log("Usage: highlightPixiElement(element)");
+    return;
+  }
+  
+  const bounds = element.getBounds();
+  const highlight = new PIXI.Graphics();
+  highlight.lineStyle(2, 0xff0000)
+    .drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    .endFill();
+  
+  app.stage.addChild(highlight);
+  
+  setTimeout(() => {
+    if (highlight.parent) {
+      highlight.parent.removeChild(highlight);
+    }
+  }, 3000);
+  
+  console.log(`Highlighted element at (${bounds.x}, ${bounds.y}) with size ${bounds.width}x${bounds.height}`);
+  return element;
+};
+
+// Store reference to the Pixi app when widget is created
+const originalCreateFlankingWidget = window.createFlankingWidget;
+window.createFlankingWidget = function(container, options) {
+  const widget = originalCreateFlankingWidget(container, options);
+  // Store a reference to the app in the container for easy access
+  container.__pixiApp = widget.app;
+  return widget;
+};
 
 // Add widget loader compatibility
 window.renderWidget = function(container) {
@@ -1783,3 +2401,22 @@ window.renderWidget = function(container) {
 
   return widget;
 };
+
+// --- Helper Functions ---
+function updateRulesText() {
+  let rulesText = "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n";
+  
+  if (diagonalFlankingEnabled) {
+    rulesText += "• When you have an ally on the opposite side or diagonal of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
+      "• For each additional ally on any other side or diagonal of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
+  } else {
+    rulesText += "• When you have an ally on the opposite side of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
+      "• For each additional ally on any other side of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
+  }
+  
+  rulesText += "• You lose all flanking bonuses if you are being flanked yourself, as your attention is divided.\n\n" +
+    "• Creatures with blindsight, tremorsense, or truesight are immune to flanking, as their heightened senses prevent them from being caught off guard.";
+  
+  rightTextDiv.innerHTML = rulesText.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+  rightTextDiv.innerHTML = '<p>' + rightTextDiv.innerHTML + '</p>';
+}

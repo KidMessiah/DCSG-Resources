@@ -1,10 +1,41 @@
+/* Typography variables */
+:root {
+  /* Font families */
+  --font-primary: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-secondary: Georgia, serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  
+  /* Type scale */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  
+  /* Line heights */
+  --leading-tight: 1.25;
+  --leading-snug: 1.375; 
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  
+  /* Font weights */
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+}
+
 body, html {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
   background: #f4f6f8;
   color: #222;
+  line-height: var(--leading-normal);
 }
 
 #container {
@@ -27,18 +58,20 @@ body, html {
 }
 
 #sidebar h1 {
-  font-size: 1.2em;
+  font-size: var(--text-xl);
   margin-top: 0;
   margin-bottom: 20px;
-  letter-spacing: 1px;
+  letter-spacing: 0.025em;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
+  font-weight: var(--font-semibold);
 }
 
 #sidebar h3 {
-  font-size: 1.1em;
+  font-size: var(--text-lg);
   margin: 16px 0 8px 0;
   color: #e5e5e5;
+  font-weight: var(--font-medium);
 }
 
 #sidebar h3:first-of-type {
@@ -60,9 +93,10 @@ body, html {
   border: 1px solid rgba(255,255,255,0.2);
   background-color: #2c3a4a;
   color: white;
-  font-size: 0.95em;
+  font-size: var(--text-sm);
   margin: 0;
   box-sizing: border-box;
+  line-height: var(--leading-normal);
 }
 
 #search:focus,
@@ -142,13 +176,20 @@ body, html {
 }
 
 .card h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.2em;
+  margin: 0 0 12px 0;
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-semibold);
 }
 
 .card p {
-  margin: 0 0 8px 0;
-  color: #555;
+  margin: 0 0 12px 0;
+  color: #444; /* Improved contrast from #555 */
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  line-height: var(--leading-relaxed);
+  font-size: var(--text-base);
 }
 
 .card video,
@@ -183,20 +224,32 @@ body, html {
   background: none;
   border-radius: 0;
   box-shadow: none;
-  text-align: center;
+  text-align: center; /* This centers headings and other elements */
   width: 100%;
   padding: 32px 0px;
   box-sizing: border-box;
 }
 
-.home-page h2 {
-  margin-top: 0;
+/* Paragraph width control - text left-aligned but paragraph centered */
+.home-page p {
+  max-width: 70ch; /* Character measure for optimal reading */
+  width: 90%;
+  margin-left: auto; /* Changed back to auto to center the paragraph block */
+  margin-right: auto;
+  line-height: var(--leading-relaxed);
+  color: #333;
+  margin-bottom: 1.5em;
+  font-size: var(--text-base);
+  text-align: left; /* Paragraphs have left-aligned text */
 }
 
-.home-page img {
-  max-width: 100%;
-  border-radius: 8px;
-  margin: 24px 0;
+/* Style paragraphs in widget content to have the same width constraint */
+.widget-content-container p {
+  max-width: 70ch; /* Character measure for optimal reading */
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: var(--leading-relaxed);
 }
 
 /* Responsive design */
@@ -217,6 +270,33 @@ body, html {
   }
   .card {
     width: 100%;
+  }
+  
+  .home-page p, 
+  .widget-content-container p {
+    width: 85%;
+    font-size: calc(var(--text-base) - 0.05rem);
+  }
+  
+  .card h2 {
+    font-size: calc(var(--text-xl) - 0.05rem);
+  }
+  
+  .card p {
+    font-size: calc(var(--text-base) - 0.05rem);
+    line-height: var(--leading-normal);
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    /* Slightly smaller base text on very small screens */
+    --text-base: 0.95rem;
+  }
+  
+  .home-page p, 
+  .widget-content-container p {
+    width: 95%;
   }
 }
 
@@ -243,13 +323,14 @@ body, html {
   border: none;
   border-radius: 6px;
   padding: 10px 15px;
-  font-size: 1em;
+  font-size: var(--text-base);
   text-align: left;
   cursor: pointer;
   position: relative;
   transition: background 0.2s;
-  font-weight: bold;
+  font-weight: var(--font-semibold);
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  line-height: var(--leading-normal);
 }
 
 .section-slideout-base:after {
@@ -292,10 +373,11 @@ body, html {
   color: #fff;
   text-align: left;
   padding: 12px 0 12px 18px;
-  font-size: 1em;
+  font-size: var(--text-base);
   cursor: pointer;
   border-radius: 0;
   transition: background 0.18s;
+  line-height: var(--leading-normal);
 }
 
 .section-slideout-options button.active,
@@ -324,8 +406,9 @@ body, html {
   cursor: pointer;
   border-radius: 4px;
   margin-bottom: 2px;
-  font-size: 1em;
+  font-size: var(--text-base);
   transition: background 0.18s;
+  line-height: var(--leading-normal);
 }
 
 .video-list button.active,
@@ -334,10 +417,10 @@ body, html {
 }
 
 .video-list div {
-  font-size: 0.95em;
+  font-size: var(--text-sm);
   color: #bbb;
   margin-left: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 8px; /* Increased for better spacing */
 }
 
 /* --- Media embeds --- */
@@ -459,51 +542,57 @@ close-btn {
   color: #fff;
   text-align: left;
   padding: 8px 10px;
-  font-size: 0.95em;
+  font-size: var(--text-sm);
   cursor: pointer;
   border-radius: 4px;
-  margin-bottom: 4px;
+  margin-bottom: 6px; /* Increased for better spacing */
   transition: background 0.2s;
   padding-bottom: 10px;
-}
-
-.widget-sidebar-list button:hover,
-.widget-sidebar-list button.active {
-  background: #33415c;
-}
-
-/* Widget animations and styling */
-@keyframes widget-highlight-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
-}
-
-.widget-highlight {
-  animation: widget-highlight-pulse 1.5s ease-out;
-  background-color: rgba(255, 255, 204, 0.3);
+  line-height: var(--leading-normal);
 }
 
 .home-page-widget {
-  transition: transform 0.2s ease;
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
 }
 
-.home-page-widget:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+/* Widget title container - modified to align elements horizontally */
+.widget-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
+/* Widget name - ensure it doesn't grow too large */
+.widget-name {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Widget category label - modified for horizontal layout */
 .widget-category-label {
   display: inline-block;
   background-color: #f0f0f0;
   padding: 2px 8px;
   border-radius: 12px;
-  font-size: 0.8em;
+  font-size: var(--text-xs);
+  color: #333;
+  font-weight: var(--font-medium);
+  flex-shrink: 0;
 }
-
+.text-box {
+  max-width: 400px; /* Approx 50 characters */
+  padding: 5px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  margin: 5px auto;
+  font-size: 16px;
+  line-height: 1.5;
+}
 /* Sidebar components */
 #sidebar-list {
   flex: 1;
@@ -514,22 +603,24 @@ close-btn {
 
 /* Inline category/description text */
 .sidebar-item-info {
-  font-size: 0.8em;
+  font-size: var(--text-xs);
   color: #aaa;
-  margin-top: 2px;
+  margin-top: 4px; /* Increased for better spacing */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   display: block;
+  line-height: var(--leading-normal);
 }
 
 /* No results message */
 .no-results {
   color: #bbb;
   padding: 8px 10px;
-  font-size: 0.9em;
+  font-size: var(--text-sm);
   font-style: italic;
+  line-height: var(--leading-normal);
 }
 
 /* Hidden elements */
@@ -541,4 +632,128 @@ close-btn {
 img {
   max-width: 100%;
   height: auto;
+}
+
+/* New helper classes for typography */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Improve heading hierarchy */
+h1 {
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+  margin-bottom: 0.8em;
+  font-weight: var(--font-bold);
+}
+
+h2 {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  margin-bottom: 0.7em;
+  font-weight: var(--font-semibold);
+}
+
+h3 {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  margin-bottom: 0.6em;
+  font-weight: var(--font-medium);
+}
+
+h4 {
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+  margin-bottom: 0.5em;
+  font-weight: var(--font-medium);
+}
+
+/* Better contrast for accessibility */
+.widget-category-label {
+  display: inline-block;
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: var(--text-xs);
+  color: #333; /* Ensure good contrast */
+  font-weight: var(--font-medium);
+}
+
+/* Flanking Widget Layout - minimal, only for structure/spacing */
+.flanking-widget-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  max-height: fit-content; /* Prevent unnecessary height */
+}
+
+.flanking-widget-content {
+  display: flex;
+  overflow: hidden;
+}
+
+.flanking-widget-left-column,
+.flanking-widget-right-column {
+  width: 33%;
+  overflow-y: auto;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  border-radius: 4px;
+}
+
+.flanking-widget-center-column {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+/* Responsive for widget */
+@media (max-width: 900px) {
+  .flanking-widget-content {
+    flex-direction: column;
+  }
+  .flanking-widget-left-column,
+  .flanking-widget-right-column {
+    width: 100%;
+    max-height: 40vh;
+  }
+}
+
+.flanking-widget-canvas-container {
+  width: 100%;
+  position: relative;
+}
+
+.flanking-widget-left-column h3,
+.flanking-widget-right-column h3 {
+  margin-top: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+}
+
+/* Make sure paragraphs in flanking widget have proper styling */
+.flanking-widget-left-column .widget-content-container p,
+.flanking-widget-right-column .widget-content-container p {
+  margin-bottom: 1em;
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: #333;
+}
+
+/* Fix for the purple space issue */
+#homepage-widget-1 > div.widget-content-container.flanking-widget-container {
+  height: auto;
+  padding-bottom: 10px;
+  margin-bottom: 0;
 }

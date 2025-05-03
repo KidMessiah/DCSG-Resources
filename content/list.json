@@ -196,13 +196,6 @@
     "type": "pdf"
   },
   {
-    "title": "The Voxid",
-    "description": "A Patreon PDF document.",
-    "path": "pdfs/Aberrant Expansion - The Voxid.pdf",
-    "category": "Patreon",
-    "type": "pdf"
-  },
-  {
     "title": "Official Website",
     "description": "Visit the official site.",
     "path": "https://example.com",

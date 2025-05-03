@@ -1,8 +1,8 @@
 [
-  { "name": "Spinning Widget", "src": "widgets/spinning.js", "category": "Animation" },
-  { "name": "Flanking Tool", "src": "widgets/flanking.js", "category": "Small" },
-  { "name": "Pulse Widget", "src": "widgets/pulse.js", "category": "Animation" },
-  { "name": "Fade Widget", "src": "widgets/fade.js", "category": "Animation" },
+  { "name": "Variant Inspiration", "src": "widgets/inspiration.js", "category": "Small" },
+  { "name": "Variant Flanking", "src": "widgets/flanking.js", "category": "Small" },
+  { "name": "Flexible Casting", "src": "widgets/flexcasting.js", "category": "Large" },
+  { "name": "Variant Bonus Action", "src": "widgets/flexbonus.js", "category": "Medium" },
   { "name": "Slide Widget", "src": "widgets/slide.js", "category": "Animation" },
   { "name": "Rotate Cube Widget", "src": "widgets/rotate-cube.js", "category": "3D" },
   { "name": "Shrink & Grow Widget", "src": "widgets/shrink-grow.js", "category": "Animation" },

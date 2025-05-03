@@ -79,7 +79,7 @@ function renderSidebar() {
   // Only rebuild the basic structure if it doesn't exist
   if (!document.getElementById('section-slideout')) {
     sb.innerHTML = `
-      <h1>HHG Resources</h1>
+      <h1>AwkwardDM Resources</h1>
       <div class="section-slideout" id="section-slideout"></div>
       <div class="cat-search-wrapper" id="cat-search-wrapper"></div>
       <div id="sidebar-list"></div>
@@ -143,7 +143,7 @@ function renderWidgetsSidebar() {
   widgetNav.style.overflowY = 'auto';
   widgetNav.style.paddingRight = '8px'; // Add some padding for the scrollbar
   
-  // Remove the scrollbar style creation - now in style.css
+  // Scrollbar styles are now handled via CSS
   
   // Display filtered widgets
   if (state.filteredWidgets.length === 0) {
@@ -241,7 +241,9 @@ function renderSectionSlideout() {
     btn.onclick = () => {
       state.selected = null;
       state.currentType = type;
-      state.currentCategory = 'All';
+      if (!state.categories.includes(state.currentCategory)) {
+        state.currentCategory = 'All';
+      }
       state.search = '';
       renderSidebar();
       renderContent();
@@ -277,8 +279,9 @@ function renderCategoryAndSearch() {
       if (state.currentType === 'Home' || state.currentType === 'All') {
         applyWidgetFilters();
       } else {
+        // Update only the content list, not the entire sidebar
         state.selected = null;
-        renderSidebar();
+        renderSidebarList(); // Only update the list part
         renderContent();
       }
     }, 180);
@@ -316,7 +319,7 @@ function renderCategoryAndSearch() {
     catSelect.onchange = e => {
       state.currentCategory = e.target.value;
       state.selected = null;
-      renderSidebar();
+      renderSidebarList(); // Only update the list part
       renderContent();
     };
     
@@ -481,12 +484,11 @@ async function renderContent() {
   if (state.currentType === 'Home' || state.currentType === 'All') {
     c.innerHTML = `
       <div class="home-page">
-        <h2>Welcome to HHG Resources</h2>
-        <p>This is your resource hub. Use the navigation to browse videos, PDFs, rules, and more.</p>
-        <img src="images/home-banner.jpg" alt="Banner" class="home-banner">
+        <h2>Welcome to AwkwardDM Resources</h2>
+        <p>This is my hub for all the resources you should need to play in my DnD games!<br>Use the sidebar for navigation, there you'll find video tutorials, PDFs (that include my patreon content) and 3rd  party sites that can be helpful for DMs and players alike!</p>
         <div>
-          <h3>About</h3>
-          <p>Put your custom text here. You can add more images, links, or any HTML you want.</p>
+          <h3>THE HOMEPAGE</h3>
+          <p>The homepage is a reference for all my homebrew rules for my players, and anyone who might want to use my homebrew. Below you will find a set of home rules, and a list of homebrew I like and allow my players to use at the table.<br><b>Additionally!</b> Each of the rules below include a small tag next to them that represent their impact on the game. Some of the changes I like at my table are very high impact, and as such I suggest reading over them carefully before dropping them into your game. You can filter by this impact in the side bar, as well as search for a particular rule you might be looking for!</p>
         </div>
         <div id="homepage-js-widgets"></div>
       </div>
@@ -500,36 +502,42 @@ async function renderContent() {
       div.id = `homepage-widget-${idx}`;
       div.className = 'home-page-widget';
       
-      // Add category label to widget
-      if (widget.category) {
-        const categoryLabel = document.createElement('div');
-        categoryLabel.className = 'widget-category-label';
-        categoryLabel.textContent = widget.category;
-        categoryLabel.style.marginBottom = '5px';
-        categoryLabel.style.fontWeight = 'bold';
-        categoryLabel.style.color = '#666';
-        div.appendChild(categoryLabel);
-      }
+      // Create title container for heading and category - now centered
+      const titleContainer = document.createElement('div');
+      titleContainer.style.display = 'flex';
+      titleContainer.style.alignItems = 'center';
+      titleContainer.style.justifyContent = 'center'; // Center items horizontally
+      titleContainer.style.gap = '10px';
+      titleContainer.style.marginBottom = '10px';
+      titleContainer.style.width = '100%'; // Ensure full width
       
       // Add name heading
       const nameHeading = document.createElement('h4');
       nameHeading.textContent = widget.name;
-      nameHeading.style.margin = '5px 0';
-      div.appendChild(nameHeading);
+      nameHeading.style.margin = '0';
+      titleContainer.appendChild(nameHeading);
+      
+      // Add category label next to the title
+      if (widget.category) {
+        const categoryLabel = document.createElement('span');
+        categoryLabel.className = 'widget-category-label';
+        categoryLabel.textContent = widget.category;
+        categoryLabel.style.fontWeight = 'bold';
+        categoryLabel.style.color = '#666';
+        categoryLabel.style.fontSize = '0.9em';
+        categoryLabel.style.padding = '2px 6px';
+        categoryLabel.style.borderRadius = '4px';
+        categoryLabel.style.backgroundColor = '#f0f0f0';
+        titleContainer.appendChild(categoryLabel);
+      }
+      
+      div.appendChild(titleContainer);
       
       // Container for widget content
       const widgetContent = document.createElement('div');
       widgetContent.className = 'widget-content-container';
       div.appendChild(widgetContent);
       
-      // Styling
-      div.style.display = 'block';
-      div.style.width = '100%';
-      div.style.margin = '32px 0';
-      div.style.padding = '15px';
-      // Add these explicit overrides to prevent any hover effects or shadows
-      div.style.boxShadow = 'none';
-      div.style.transition = 'none';
       
       // Add inline styles to ensure no hover effects from CSS
       const styleTag = document.createElement('style');
@@ -553,7 +561,7 @@ async function renderContent() {
             try {
               window.renderWidget(widgetContent);
             } catch (e) {
-              widgetContent.innerHTML = `<div style="color:red;">Widget error: ${e.message}</div>`;
+              widgetContent.innerHTML = `<div style="color:red;">Widget error: ${escapeHtml(e.message)}</div>`;
             }
             delete window.renderWidget;
           }
@@ -618,7 +626,16 @@ function renderMedia(item) {
 
 // --- Helpers ---
 function capitalize(str) {
-  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+  if (!str) return '';
+  
+  // Handle special abbreviations that should be all uppercase
+  const uppercaseTerms = ['pdf', 'dm', 'gm', 'npc', 'pc'];
+  if (uppercaseTerms.includes(str.toLowerCase())) {
+    return str.toUpperCase();
+  }
+  
+  // Default behavior: capitalize first letter
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function isHomepage() {
@@ -630,6 +647,56 @@ function isHomepage() {
 document.addEventListener('DOMContentLoaded', async () => {
   cacheDom();
   await loadItems();
+  
+  // Load saved state if available
+  if (window.loadStateFromStorage) {
+    window.loadStateFromStorage();
+    console.log("State loaded from storage");
+    
+    // Attach state change listeners if available
+    if (window.attachStateChangeListeners) {
+      window.attachStateChangeListeners();
+      console.log("State change listeners attached");
+    }
+    
+    // Apply UI changes after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      if (window.applyStateToUI) {
+        window.applyStateToUI();
+        console.log("UI state applied");
+      }
+    }, 100);
+  }
+  
   renderSidebar();
   renderContent();
+  
+  // Save initial state if no prior state exists
+  if (window.saveStateToStorage && !localStorage.getItem('ADMResourcesState')) {
+    window.saveStateToStorage();
+    console.log("Initial state saved");
+  }
 });
+
+// Add this helper function for the state persistence module
+window.initializeApp = function() {
+  renderSidebar();
+  renderContent();
+};
+
+// Add state change handlers to key functions
+const originalRenderSidebar = renderSidebar;
+renderSidebar = function() {
+  originalRenderSidebar();
+  if (window.handleStateChange) {
+    window.handleStateChange();
+  }
+};
+
+const originalRenderContent = renderContent;
+renderContent = function() {
+  originalRenderContent();
+  if (window.handleStateChange) {
+    window.handleStateChange();
+  }
+};
