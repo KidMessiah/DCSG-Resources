@@ -6,8 +6,7 @@
   { "name": "Variant Resurrection", "src": "widgets/resurrection.js", "category": "Medium" },
   { "name": "Variant Intelligence", "src": "widgets/intelligence.js", "category": "Small" },
   { "name": "Versatile Heritage", "src": "widgets/heritage.js", "category": "Small" },
-  { "name": "Flip Widget", "src": "widgets/flip.js", "category": "Animation" },
-  { "name": "Zigzag Widget", "src": "widgets/zigzag.js", "category": "Movement" },
-  { "name": "Expand Bar Widget", "src": "widgets/expand-bar.js", "category": "UI" },
-  { "name": "Shake Widget", "src": "widgets/shake.js", "category": "Animation" }
+  { "name": "Signature Spells", "src": "widgets/signature.js", "category": "Large" },
+  { "name": "Warlock Spells", "src": "widgets/warlock.js", "category": "Medium" },
+  { "name": "Homebrew", "src": "widgets/homebrew.js", "category": "" }
 ]
