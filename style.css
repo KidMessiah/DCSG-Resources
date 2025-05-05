@@ -153,6 +153,7 @@ body, html {
   gap: 0px;
   overflow-x: hidden;
   max-width: 100%;
+  position: relative; /* Add this to ensure absolute positioning works correctly */
 }
 
 #content input[type="text"], #content select {
@@ -428,7 +429,7 @@ body, html {
 #content video,
 .video-embed {
   width: 100%;
-  height: 70vh;
+  height: 100vh;
   min-height: 320px;
   border-radius: 8px;
   background: #000;
@@ -439,14 +440,19 @@ body, html {
 /* --- PDF and Video containers --- */
 .pdf-viewer-container,
 .video-viewer-container {
-  position: relative;
+  position: absolute; /* Changed from fixed to absolute */
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
-  max-width: 100%;
-  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 1; /* Lower z-index so it stays within content area */
+  background: #000;
+  display: flex; /* Add flex to ensure content fills container */
+  align-items: center;
+  justify-content: center;
 }
 
 .pdf-viewer,
@@ -467,9 +473,36 @@ body, html {
 }
 
 .video-content {
-  padding: 48px 0 0 0;
-  max-width: 900px;
-  margin: auto;
+  position: static; /* Changed from relative to static */
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1; /* Make sure it takes full available space */
+}
+
+.video-embed {
+  width: 100%;
+  height: 100%; /* Ensure it takes full height */
+  border: none;
+  margin: 0;
+  padding: 0;
+  object-fit: contain; /* Ensures video maintains aspect ratio */
+  background: transparent;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+/* YouTube specific adjustment - for better aspect ratio handling */
+iframe.video-embed {
+  aspect-ratio: 16/9; /* Maintain aspect ratio for videos */
+  height: auto; /* Let the aspect ratio determine height */
+  min-height: 80vh; /* Ensure a good minimum height */
+  max-height: 100vh;
 }
 
 close-btn {
@@ -756,4 +789,194 @@ h4 {
   height: auto;
   padding-bottom: 10px;
   margin-bottom: 0;
+}
+
+/* --- Pinterest Style Image Board --- */
+.masonry-container {
+  column-width: 300px; /* Define minimum column width instead of count */
+  column-gap: 10px;
+  padding: 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.masonry-item {
+  break-inside: avoid; /* Critical - prevents items breaking across columns */
+  margin-bottom: 10px; /* Vertical spacing between items */
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease;
+  position: relative;
+  padding: 0;
+  line-height: 0;
+  font-size: 0;
+  background: transparent;
+  display: inline-block; /* Important for column-based layout */
+  width: 100%; /* Take full width of the column */
+}
+
+.masonry-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+}
+
+.image-wrapper {
+  position: relative;
+  width: 100%;
+  line-height: 0; /* Remove extra space */
+  cursor: pointer;
+  overflow: hidden;
+  display: block;
+  border-radius: 8px;
+  font-size: 0; /* Remove text node spacing */
+  height: 100%; /* Ensure it takes full height */
+}
+
+.image-wrapper img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+  height: auto;
+  margin: 0; /* Ensure no margins */
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0; /* Use all sides instead of height/width */
+  background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 15px;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 8px;
+}
+
+.image-wrapper:hover .image-overlay {
+  opacity: 1;
+}
+
+.image-title {
+  color: white;
+  margin: 0 0 6px 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-semibold);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.image-description {
+  color: rgba(255,255,255,0.9);
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+
+/* Lightbox for full-size image view */
+.image-lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 30px;
+  box-sizing: border-box;
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  z-index: 1001;
+}
+
+.lightbox-image-container {
+  max-width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lightbox-image-container img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.lightbox-caption {
+  color: white;
+  text-align: center;
+  margin-top: 15px;
+  max-width: 80%;
+}
+
+.lightbox-caption h3 {
+  margin: 0 0 6px 0;
+  font-size: var(--text-xl);
+}
+
+.lightbox-caption p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: var(--text-base);
+}
+
+.no-results-message {
+  padding: 20px;
+  text-align: center;
+  font-size: var(--text-lg);
+  color: #666;
+}
+
+/* Responsive design for image board - adjust min column width on different screens */
+@media (max-width: 1200px) {
+  .masonry-container {
+    column-width: 280px; /* Slightly smaller columns on medium screens */
+  }
+}
+
+@media (max-width: 900px) {
+  .masonry-container {
+    column-width: 260px; /* Even smaller columns on small screens */
+  }
+}
+
+@media (max-width: 600px) {
+  .masonry-container {
+    column-width: 90vw; /* One column on mobile (90% of viewport width) */
+    padding: 10px;
+  }
+  
+  .lightbox-image-container {
+    max-width: 95%;
+  }
+  
+  .lightbox-caption {
+    max-width: 95%;
+  }
 }

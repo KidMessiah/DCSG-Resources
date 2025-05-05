@@ -56,12 +56,30 @@ async function loadItems() {
       const res = await fetch(file.url);
       if (!res.ok) continue;
       const data = await res.json();
-      for (const item of data) {
-        state.items.push(item);
-        if (item.type && !state.types.includes(item.type)) state.types.push(item.type);
+      
+      // Handle the nested structure
+      if (Array.isArray(data)) {
+        // Support for legacy flat array format
+        for (const item of data) {
+          state.items.push(item);
+          if (item.type && !state.types.includes(item.type)) state.types.push(item.type);
+        }
+      } else {
+        // New nested format
+        for (const type in data) {
+          if (!state.types.includes(type)) state.types.push(type);
+          
+          // Add each item with its type property
+          for (const item of data[type]) {
+            state.items.push({
+              ...item,
+              type // Add the type from the parent key
+            });
+          }
+        }
       }
     } catch (e) {
-      // Optionally log error
+      console.error("Error loading items:", e);
     }
   }
 }
@@ -257,11 +275,11 @@ function renderCategoryAndSearch() {
       if (state.currentType === 'Home' || state.currentType === 'All') {
         applyWidgetFilters();
       } else {
-        // Only update the sidebar list, don't clear the selection
-        renderSidebarList(); // Only update the list part
+        // Update the sidebar list for all content types
+        renderSidebarList();
         
-        // Only render content if nothing is currently selected
-        if (!state.selected) {
+        // For images, also update the content area without requiring a selection
+        if (state.currentType === 'image' || !state.selected) {
           renderContent();
         }
       }
@@ -271,7 +289,7 @@ function renderCategoryAndSearch() {
   wrapper.appendChild(searchInput);
   
   // CATEGORY SECOND: Category dropdown
-  if (['pdf', 'video'].includes(state.currentType) || (state.currentType !== 'Home' && state.currentType !== 'All')) {
+  if (['pdf', 'video', 'image'].includes(state.currentType) || (state.currentType !== 'Home' && state.currentType !== 'All')) {
     state.categories = ['All'];
     for (const item of state.items) {
       if (item.type === state.currentType && item.category && !state.categories.includes(item.category)) {
@@ -297,8 +315,13 @@ function renderCategoryAndSearch() {
     
     catSelect.onchange = e => {
       state.currentCategory = e.target.value;
-      state.selected = null;
-      renderSidebarList(); // Only update the list part
+      
+      // For images, don't clear the selection as we're showing all images anyway
+      if (state.currentType !== 'image') {
+        state.selected = null;
+      }
+      
+      renderSidebarList();
       renderContent();
     };
     
@@ -310,7 +333,8 @@ function renderSidebarList() {
   const listDiv = document.getElementById('sidebar-list');
   listDiv.innerHTML = '';
   
-  if (['pdf', 'video'].includes(state.currentType)) {
+  // Handle PDF, Video, and now Image types
+  if (['pdf', 'video', 'image'].includes(state.currentType)) {
     let items = state.items.filter(i => i.type === state.currentType);
     if (state.currentCategory !== 'All') items = items.filter(i => i.category === state.currentCategory);
     if (state.search) {
@@ -342,10 +366,10 @@ function renderSidebarList() {
       
       // Title text
       const titleText = document.createElement('span');
-      titleText.textContent = item.title;
+      titleText.textContent = item.title || 'Untitled';
       titleContainer.appendChild(titleText);
       
-      // Add close button for selected PDF or Video
+      // Add close button for selected items (PDF, Video, or selected Image)
       if (state.selected && state.selected.item && state.selected.item.path === item.path) {
         const closeBtn = document.createElement('span');
         closeBtn.textContent = '❌';
@@ -387,8 +411,14 @@ function renderSidebarList() {
       btn.onmouseout = () => {};
       
       btn.onclick = () => {
-        state.selected = { type: state.currentType, item };
-        renderContent();
+        if (state.currentType === 'image') {
+          // For images, just scroll to the image in the gallery
+          // Or show the full-size view
+          createFullSizeImageView(item);
+        } else {
+          state.selected = { type: state.currentType, item };
+          renderContent();
+        }
         renderSidebarList(); // Update sidebar selection highlight
       };
       
@@ -411,7 +441,7 @@ async function renderContent() {
     `;
     return;
   }
-  // Video Viewer - remove close button
+  // Video Viewer - removed title and description
   if (state.selected && state.selected.type === 'video') {
     let videoEmbed = '';
     const path = state.selected.item.path;
@@ -423,8 +453,6 @@ async function renderContent() {
     c.innerHTML = `
       <div class="video-viewer-container">
         <div class="video-content">
-          <h2>${escapeHtml(state.selected.item.title)}</h2>
-          <p>${escapeHtml(state.selected.item.description || '')}</p>
           ${videoEmbed}
         </div>
       </div>
@@ -504,6 +532,114 @@ async function renderContent() {
     }
     return;
   }
+  
+  // Image Gallery - Pinterest Style
+  if (state.currentType === 'image') {
+    // Filter images
+    let images = state.items.filter(i => i.type === 'image');
+    if (state.currentCategory !== 'All') {
+      images = images.filter(i => i.category === state.currentCategory);
+    }
+    if (state.search) {
+      const term = state.search;
+      images = images.filter(i =>
+        (i.title && i.title.toLowerCase().includes(term)) ||
+        (i.description && i.description.toLowerCase().includes(term))
+      );
+    }
+    
+    if (!images.length) {
+      c.innerHTML = '<p class="no-results-message">No images found.</p>';
+      return;
+    }
+    
+    // Create masonry container
+    c.innerHTML = '<div class="masonry-container"></div>';
+    const masonryContainer = document.querySelector('.masonry-container');
+    
+    // Add images to the masonry layout
+    for (const image of images) {
+      const imageItem = document.createElement('div');
+      imageItem.className = 'masonry-item';
+      
+      // Image wrapper to contain the image and overlay
+      const imageWrapper = document.createElement('div');
+      imageWrapper.className = 'image-wrapper';
+      
+      // Create actual image element
+      const img = document.createElement('img');
+      img.src = image.path;
+      img.alt = image.title || 'Image';
+      img.loading = 'lazy'; // Lazy load images
+      
+      // Create overlay for title and description
+      const overlay = document.createElement('div');
+      overlay.className = 'image-overlay';
+      
+      // Add title
+      const title = document.createElement('h3');
+      title.className = 'image-title';
+      title.textContent = image.title || 'Untitled';
+      
+      // Add description
+      const description = document.createElement('p');
+      description.className = 'image-description';
+      description.textContent = image.description || '';
+      
+      // Assemble the components
+      overlay.appendChild(title);
+      overlay.appendChild(description);
+      imageWrapper.appendChild(img);
+      imageWrapper.appendChild(overlay);
+      imageItem.appendChild(imageWrapper);
+      
+      // Add full-size image view when clicking
+      imageWrapper.addEventListener('click', () => {
+        createFullSizeImageView(image);
+      });
+      
+      masonryContainer.appendChild(imageItem);
+    }
+    
+    // Initialize masonry layout after images have loaded
+    let loadedImages = 0;
+    const totalImages = images.length;
+    
+    masonryContainer.querySelectorAll('img').forEach(img => {
+      // For completed images, update layout immediately
+      if (img.complete) {
+        loadedImages++;
+        if (loadedImages === totalImages) {
+          setTimeout(adjustMasonryLayout, 50); // Short delay to ensure rendering
+        }
+      } else {
+        // For images still loading, add load and error handlers
+        img.addEventListener('load', () => {
+          loadedImages++;
+          
+          // When all images are loaded, remove any placeholders if needed
+          if (loadedImages === totalImages) {
+            setTimeout(() => {
+              // Any final adjustments can go here
+            }, 50);
+          }
+        });
+        
+        img.addEventListener('error', () => {
+          loadedImages++;
+          if (loadedImages === totalImages) {
+            setTimeout(adjustMasonryLayout, 50);
+          }
+        });
+      }
+    });
+    
+    // Add window resize handler for responsive layout
+    window.addEventListener('resize', debounce(adjustMasonryLayout, 250));
+    
+    return;
+  }
+  
   // Empty for PDF/Video section with no selection
   if (['pdf', 'video'].includes(state.currentType)) {
     c.innerHTML = '';
@@ -539,6 +675,89 @@ async function renderContent() {
     `;
     c.appendChild(card);
   }
+}
+
+// Function to create the full-size image view
+function createFullSizeImageView(image) {
+  // Remove any existing lightbox
+  const existingLightbox = document.getElementById('image-lightbox');
+  if (existingLightbox) {
+    existingLightbox.remove();
+  }
+  
+  // Create lightbox container
+  const lightbox = document.createElement('div');
+  lightbox.id = 'image-lightbox';
+  lightbox.className = 'image-lightbox';
+  
+  // Create the close button
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'lightbox-close-btn';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.onclick = () => lightbox.remove();
+  
+  // Create the image container
+  const imgContainer = document.createElement('div');
+  imgContainer.className = 'lightbox-image-container';
+  
+  // Create the image
+  const img = document.createElement('img');
+  img.src = image.path;
+  img.alt = image.title || 'Image';
+  
+  // Create the caption
+  const caption = document.createElement('div');
+  caption.className = 'lightbox-caption';
+  
+  const title = document.createElement('h3');
+  title.textContent = image.title || 'Untitled';
+  
+  const description = document.createElement('p');
+  description.textContent = image.description || '';
+  
+  // Assemble the lightbox
+  caption.appendChild(title);
+  caption.appendChild(description);
+  imgContainer.appendChild(img);
+  lightbox.appendChild(closeBtn);
+  lightbox.appendChild(imgContainer);
+  lightbox.appendChild(caption);
+  
+  // Add the lightbox to the document
+  document.body.appendChild(lightbox);
+  
+  // Close on click outside the image
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) {
+      lightbox.remove();
+    }
+  });
+  
+  // Close on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('image-lightbox')) {
+      lightbox.remove();
+    }
+  }, { once: true });
+}
+
+// Function to adjust masonry layout (simplified for column-based layout)
+function adjustMasonryLayout() {
+  // No specific adjustments needed for column-based layout
+  // This is now handled primarily by CSS
+}
+
+// Debounce function to limit how often a function is called
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 function renderMedia(item) {

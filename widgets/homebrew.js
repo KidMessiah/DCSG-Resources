@@ -12,11 +12,6 @@ window.renderWidget = function(container) {
         name: "Spells",
         items: [
           {
-            category: "explanation",
-            name: "About Spells",
-            description: "This section contains approved homebrew spell sources. These can be used to select spells for your character based on the category restrictions."
-          },
-          {
             category: "free",
             name: "Evolving Cantrips",
             author: "Craios125",
@@ -98,7 +93,7 @@ window.renderWidget = function(container) {
           {
             category: "explanation",
             name: "About Classes",
-            description: "This section contains approved homebrew classes. Note that choosing a class has a significant impact on your character, so read the descriptions carefully."
+            description: "Classes are a special case as they have such long term use, the ones in this category are untested in a campaign scenario and have only have read-overs so far. If in actual play they have balance issues they will be adjusted fairly regularly until we find a nice equilibrium."
           },
           {
             category: "free",
@@ -155,11 +150,6 @@ window.renderWidget = function(container) {
         name: "Subclasses",
         items: [
           {
-            category: "explanation",
-            name: "About Subclasses",
-            description: "This section contains approved homebrew subclasses that can be used with official classes. Make sure the subclass is compatible with your chosen class."
-          },
-          {
             category: "free",
             name: "Arcadia",
             author: "MCDM",
@@ -213,11 +203,6 @@ window.renderWidget = function(container) {
         id: "species",
         name: "Species",
         items: [
-          {
-            category: "explanation",
-            name: "About Species",
-            description: "This section contains approved homebrew species (races) that you can choose for your character."
-          },
           {
             category: "free",
             name: "Arcadia",
@@ -281,31 +266,31 @@ window.renderWidget = function(container) {
           {
             category: "explanation",
             name: "About Feats",
-            description: "This section contains approved homebrew feats. Note that all feat sources are restricted and require DM approval before use."
+            description: "All feats will be under the Restricted tag, I have yet to find a source book that doesn't contain something that is incredibly strong, so for now everything is approval only."
           },
           {
             category: "restricted",
             name: "Arkadia",
             author: "Arcana Games",
-            description: "All feats will be under the Restricted tag, I have yet to find a source book that doesn't contain something that is incredibly strong, so for now everything is approval only."
+            description: ""
           },
           {
             category: "restricted",
             name: "Tal'Dorei Campaign Setting",
             author: "Darrington Press",
-            description: "All feats will be under the Restricted tag, I have yet to find a source book that doesn't contain something that is incredibly strong, so for now everything is approval only."
+            description: ""
           },
           {
             category: "restricted",
             name: "The Elements and Beyond",
             author: "Benevolent Evil",
-            description: "All feats will be under the Restricted tag, I have yet to find a source book that doesn't contain something that is incredibly strong, so for now everything is approval only."
+            description: ""
           },
           {
             category: "restricted",
             name: "Yorviing's Arcane Grimoire",
             author: "Yorviing",
-            description: "All feats will be under the Restricted tag, I have yet to find a source book that doesn't contain something that is incredibly strong, so for now everything is approval only."
+            description: ""
           }
         ]
       }
@@ -319,24 +304,6 @@ window.renderWidget = function(container) {
         <h1>Approved Homebrew Catalogue</h1>
         <div class="hw-search-container">
           <input type="text" id="hw-search" placeholder="Search homebrew...">
-        </div>
-      </div>
-      
-      <div class="hw-category-info">
-        <div class="hw-info-toggle">About Categories <span>▼</span></div>
-        <div class="hw-info-content">
-          <div class="hw-category-description" data-category="free">
-            <h3>Free</h3>
-            <p>Can be used without approval and are treated as core rulebooks for players at my table.</p>
-          </div>
-          <div class="hw-category-description" data-category="restricted">
-            <h3>Restricted</h3>
-            <p>Almost the same as Free, except I expect a player to run it by me just in case there's something in the source I don't like.</p>
-          </div>
-          <div class="hw-category-description" data-category="signature">
-            <h3>Signature Only</h3>
-            <p>Applies specifically to spells, and refers to sources that can only be used to choose a Signature Spell from.</p>
-          </div>
         </div>
       </div>
       
@@ -358,16 +325,21 @@ window.renderWidget = function(container) {
         ${homebrewData.sections.map(section => `
           <div class="hw-section" id="section-${section.id}">
             <div class="hw-items">
-              ${section.items.map(item => `
+              ${section.items.map(item => {
+                // Find category description for the tooltip
+                const categoryData = homebrewData.categories.find(cat => cat.id === item.category);
+                const tooltipText = categoryData ? categoryData.description : '';
+                
+                return `
                 <div class="hw-item" data-category="${item.category}">
                   <div class="hw-item-header">
                     <h3>${item.name}</h3>
-                    <span class="hw-category-badge ${item.category}">${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</span>
+                    <span class="hw-category-badge ${item.category}" data-tooltip="${tooltipText}">${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</span>
                   </div>
                   <div class="hw-item-author">By ${item.author}</div>
                   ${item.description ? `<div class="hw-item-description">${item.description}</div>` : ''}
                 </div>
-              `).join('')}
+              `}).join('')}
             </div>
           </div>
         `).join('')}
@@ -378,6 +350,8 @@ window.renderWidget = function(container) {
       #homebrew-widget {
         font-family: var(--font-primary);
         margin: 0 auto;
+        width: 50%;
+        min-height: 75vh;
         padding: 20px;
         background:rgb(255, 255, 255);
         border-radius: 8px;
@@ -407,34 +381,6 @@ window.renderWidget = function(container) {
         border: 1px solid #ccc;
         border-radius: 4px;
         font-size: var(--text-base);
-      }
-      
-      .hw-category-info {
-        margin-bottom: 20px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        overflow: hidden;
-      }
-      
-      .hw-info-toggle {
-        background: #f0f0f0;
-        padding: 10px 15px;
-        cursor: pointer;
-        font-weight: var(--font-semibold);
-      }
-      
-      .hw-info-content {
-        padding: 15px;
-        display: none;
-      }
-      
-      .hw-category-description {
-        margin-bottom: 15px;
-      }
-      
-      .hw-category-description h3 {
-        margin-top: 0;
-        margin-bottom: 5px;
       }
       
       .hw-tabs {
@@ -524,6 +470,41 @@ window.renderWidget = function(container) {
         padding: 3px 8px;
         border-radius: 12px;
         font-weight: bold;
+        position: relative;
+        cursor: help;
+      }
+      
+      .hw-category-badge:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        width: 220px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 8px;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: normal;
+        font-size: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        pointer-events: none;
+        white-space: normal;
+        line-height: 1.4;
+      }
+      
+      .hw-category-badge:hover::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 8px 6px 0;
+        border-style: solid;
+        border-color: #333 transparent transparent transparent;
+        z-index: 1;
       }
       
       .hw-category-badge.free {
@@ -608,8 +589,6 @@ window.renderWidget = function(container) {
   const sections = widget.querySelectorAll('.hw-section');
   const filterButtons = widget.querySelectorAll('.hw-filter-btn');
   const searchInput = widget.querySelector('#hw-search');
-  const infoToggle = widget.querySelector('.hw-info-toggle');
-  const infoContent = widget.querySelector('.hw-info-content');
 
   // Set the first tab as active initially
   tabButtons[0].classList.add('active');
@@ -676,12 +655,5 @@ window.renderWidget = function(container) {
         item.classList.add('hidden');
       }
     });
-  });
-
-  // Category info toggle
-  infoToggle.addEventListener('click', () => {
-    const isVisible = infoContent.style.display === 'block';
-    infoContent.style.display = isVisible ? 'none' : 'block';
-    infoToggle.querySelector('span').textContent = isVisible ? '▼' : '▲';
   });
 };
