@@ -278,8 +278,8 @@ function renderCategoryAndSearch() {
         // Update the sidebar list for all content types
         renderSidebarList();
         
-        // For images, also update the content area without requiring a selection
-        if (state.currentType === 'image' || !state.selected) {
+        // For images and websites, also update the content area without requiring a selection
+        if (state.currentType === 'image' || state.currentType === 'website' || !state.selected) {
           renderContent();
         }
       }
@@ -289,7 +289,7 @@ function renderCategoryAndSearch() {
   wrapper.appendChild(searchInput);
   
   // CATEGORY SECOND: Category dropdown
-  if (['pdf', 'video', 'image'].includes(state.currentType) || (state.currentType !== 'Home' && state.currentType !== 'All')) {
+  if (['pdf', 'video', 'image', 'website'].includes(state.currentType) || (state.currentType !== 'Home' && state.currentType !== 'All')) {
     state.categories = ['All'];
     for (const item of state.items) {
       if (item.type === state.currentType && item.category && !state.categories.includes(item.category)) {
@@ -316,8 +316,8 @@ function renderCategoryAndSearch() {
     catSelect.onchange = e => {
       state.currentCategory = e.target.value;
       
-      // For images, don't clear the selection as we're showing all images anyway
-      if (state.currentType !== 'image') {
+      // For images and websites, don't clear the selection as we're showing all items anyway
+      if (state.currentType !== 'image' && state.currentType !== 'website') {
         state.selected = null;
       }
       
@@ -333,8 +333,8 @@ function renderSidebarList() {
   const listDiv = document.getElementById('sidebar-list');
   listDiv.innerHTML = '';
   
-  // Handle PDF, Video, and now Image types
-  if (['pdf', 'video', 'image'].includes(state.currentType)) {
+  // Handle PDF, Video, Image, and Website types
+  if (['pdf', 'video', 'image', 'website'].includes(state.currentType)) {
     let items = state.items.filter(i => i.type === state.currentType);
     if (state.currentCategory !== 'All') items = items.filter(i => i.category === state.currentCategory);
     if (state.search) {
@@ -364,12 +364,20 @@ function renderSidebarList() {
       const titleContainer = document.createElement('div');
       titleContainer.className = 'title-container';
       
+      // Add icon based on content type (for websites)
+      if (state.currentType === 'website') {
+        const icon = document.createElement('span');
+        icon.className = 'sidebar-item-icon';
+        icon.innerHTML = '🌐'; // Web icon
+        titleContainer.appendChild(icon);
+      }
+      
       // Title text
       const titleText = document.createElement('span');
       titleText.textContent = item.title || 'Untitled';
       titleContainer.appendChild(titleText);
       
-      // Add close button for selected items (PDF, Video, or selected Image)
+      // Add close button for selected items
       if (state.selected && state.selected.item && state.selected.item.path === item.path) {
         const closeBtn = document.createElement('span');
         closeBtn.textContent = '❌';
@@ -412,9 +420,21 @@ function renderSidebarList() {
       
       btn.onclick = () => {
         if (state.currentType === 'image') {
-          // For images, just scroll to the image in the gallery
-          // Or show the full-size view
+          // For images, just show the full-size view
           createFullSizeImageView(item);
+        } else if (state.currentType === 'website') {
+          // For websites, scroll to the card or highlight it
+          state.selected = { type: state.currentType, item };
+          // Find and scroll to the website card
+          const websiteCards = document.querySelectorAll('.website-card');
+          for (let i = 0; i < websiteCards.length; i++) {
+            if (websiteCards[i].dataset.path === item.path) {
+              websiteCards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+              websiteCards[i].classList.add('highlight');
+              setTimeout(() => websiteCards[i].classList.remove('highlight'), 1500);
+              break;
+            }
+          }
         } else {
           state.selected = { type: state.currentType, item };
           renderContent();
@@ -640,6 +660,112 @@ async function renderContent() {
     return;
   }
   
+  // Website Gallery - Grid Layout
+  if (state.currentType === 'website') {
+    // Filter websites
+    let websites = state.items.filter(i => i.type === 'website');
+    if (state.currentCategory !== 'All') {
+      websites = websites.filter(i => i.category === state.currentCategory);
+    }
+    if (state.search) {
+      const term = state.search;
+      websites = websites.filter(i =>
+        (i.title && i.title.toLowerCase().includes(term)) ||
+        (i.description && i.description.toLowerCase().includes(term))
+      );
+    }
+    
+    if (!websites.length) {
+      c.innerHTML = '<p class="no-results-message">No websites found.</p>';
+      return;
+    }
+    
+    // Create website gallery container
+    c.innerHTML = '<div class="website-gallery"></div>';
+    const galleryContainer = document.querySelector('.website-gallery');
+    
+    // Add website cards to the gallery
+    for (const website of websites) {
+      const websiteCard = document.createElement('div');
+      websiteCard.className = 'website-card';
+      websiteCard.dataset.path = website.path;
+      
+      // Create preview section 
+      const previewSection = document.createElement('div');
+      previewSection.className = 'website-preview';
+      
+      // Website icon/thumbnail
+      const iconContainer = document.createElement('div');
+      iconContainer.className = 'website-icon';
+      
+      // If thumbnail is provided, use it, otherwise use an icon
+      if (website.thumbnail) {
+        const thumbnail = document.createElement('img');
+        thumbnail.src = website.thumbnail;
+        thumbnail.alt = website.title || 'Website';
+        thumbnail.loading = 'lazy';
+        iconContainer.appendChild(thumbnail);
+      } else {
+        // Default icon for websites
+        iconContainer.innerHTML = '<span class="default-website-icon">🌐</span>';
+      }
+      
+      previewSection.appendChild(iconContainer);
+      websiteCard.appendChild(previewSection);
+      
+      // Website info section
+      const infoSection = document.createElement('div');
+      infoSection.className = 'website-info';
+      
+      // Add title
+      const title = document.createElement('h3');
+      title.className = 'website-title';
+      title.textContent = website.title || 'Untitled';
+      
+      // Add category tag if available
+      if (website.category) {
+        const categoryTag = document.createElement('span');
+        categoryTag.className = 'website-category-tag';
+        categoryTag.textContent = website.category;
+        title.appendChild(document.createTextNode(' '));
+        title.appendChild(categoryTag);
+      }
+      
+      infoSection.appendChild(title);
+      
+      // Add description
+      if (website.description) {
+        const description = document.createElement('p');
+        description.className = 'website-description';
+        description.textContent = website.description;
+        infoSection.appendChild(description);
+      }
+      
+      // Add visit button
+      const visitButton = document.createElement('a');
+      visitButton.className = 'visit-website-button';
+      visitButton.href = website.path;
+      visitButton.target = '_blank';
+      visitButton.rel = 'noopener noreferrer';
+      visitButton.textContent = 'Visit Website';
+      
+      infoSection.appendChild(visitButton);
+      websiteCard.appendChild(infoSection);
+      
+      // Add click handler for the entire card (except the button)
+      websiteCard.addEventListener('click', (e) => {
+        // Don't override the button click
+        if (e.target !== visitButton && !visitButton.contains(e.target)) {
+          window.open(website.path, '_blank', 'noopener,noreferrer');
+        }
+      });
+      
+      galleryContainer.appendChild(websiteCard);
+    }
+    
+    return;
+  }
+  
   // Empty for PDF/Video section with no selection
   if (['pdf', 'video'].includes(state.currentType)) {
     c.innerHTML = '';
@@ -766,7 +892,13 @@ function renderMedia(item) {
     return `<embed src="${escapeHtml(item.path)}" type="application/pdf" height="220px">`;
   }
   if (item.type === 'website') {
-    return `<a class="button" href="${escapeHtml(item.path)}" target="_blank">Visit Website</a>`;
+    // Enhanced website rendering with icon and more styling
+    return `
+      <div class="website-link-container">
+        <span class="website-icon">🌐</span>
+        <a class="button website-button" href="${escapeHtml(item.path)}" target="_blank">Visit Website</a>
+      </div>
+    `;
   }
   return '';
 }

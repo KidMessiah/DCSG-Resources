@@ -32,7 +32,14 @@
     { "title": "Brightmane's Adventuring Academy", "description": "A Patreon PDF document.", "path": "pdfs/BAA v1.pdf", "category": "Patreon" }
   ],
   "website": [
-    { "title": "Official Website", "description": "Visit the official site.", "path": "https://example.com", "category": "Websites" }
+    { "title": "Shared Compendium Tool", "description": "A shared compendium tool for Foundry VTT", "path": "https://fgen.lffg.org/module/create", "category": "Tools" },
+    { "title": "AwkwardDM Homebrew Catalogue", "description": "The catalogue for AwkwardDM's homebrew content", "path": "https://docs.google.com/spreadsheets/d/1gpCFEWLVez98aPrIqyPqrRp0IAScATG98_d59G6lZyc/edit?usp=sharing", "category": "Homebrew" },
+    { "title": "Spell Wounds Examples", "description": "Examples of spell wounds for different spells", "path": "https://filibusterfrog.tumblr.com/post/173878641063/level-2-spell-scars-have-fun-when-you-suffer/amp", "category": "Game Resources" },
+    { "title": "Game Icons", "description": "A repository of free game-icons for use as ability icons in Foundry", "path": "https://game-icons.net/", "category": "Resources" },
+    { "title": "Fantasy Name Generators", "description": "Generate fantasy names for characters, places, and more", "path": "https://www.fantasynamegenerators.com/", "category": "Tools" },
+    { "title": "Eigengrau's Generator", "description": "A town generator for tabletop games", "path": "https://eigengrausgenerator.com/", "category": "Tools" },
+    { "title": "Random Spell Generator", "description": "Randomly rolls a D&D spell", "path": "https://cirrahn.github.io/spell/", "category": "Tools" },
+    { "title": "Alcoholic Drinks Table", "description": "D100 table of alcoholic drinks for your tavern", "path": "https://chartopia.d12dev.com/chart/5918/", "category": "Tables" }
   ],
   "image": [
     { "title": "Creative Software Alternatives", "description": "This is a list of replacements for a bunch of paid creative programs", "path": "images/alternatives.png" },
