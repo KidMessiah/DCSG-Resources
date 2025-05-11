@@ -56,12 +56,30 @@ async function loadItems() {
       const res = await fetch(file.url);
       if (!res.ok) continue;
       const data = await res.json();
-      for (const item of data) {
-        state.items.push(item);
-        if (item.type && !state.types.includes(item.type)) state.types.push(item.type);
+      
+      // Handle the nested structure
+      if (Array.isArray(data)) {
+        // Support for legacy flat array format
+        for (const item of data) {
+          state.items.push(item);
+          if (item.type && !state.types.includes(item.type)) state.types.push(item.type);
+        }
+      } else {
+        // New nested format
+        for (const type in data) {
+          if (!state.types.includes(type)) state.types.push(type);
+          
+          // Add each item with its type property
+          for (const item of data[type]) {
+            state.items.push({
+              ...item,
+              type // Add the type from the parent key
+            });
+          }
+        }
       }
     } catch (e) {
-      // Optionally log error
+      console.error("Error loading items:", e);
     }
   }
 }
@@ -138,13 +156,6 @@ function renderWidgetsSidebar() {
   widgetNav.id = 'homepage-widget-nav';
   widgetNav.className = 'widget-sidebar-list';
   
-  // Set scrollable container styles
-  widgetNav.style.maxHeight = '50vh'; // Limit height to 50% of viewport height
-  widgetNav.style.overflowY = 'auto';
-  widgetNav.style.paddingRight = '8px'; // Add some padding for the scrollbar
-  
-  // Scrollbar styles are now handled via CSS
-  
   // Display filtered widgets
   if (state.filteredWidgets.length === 0) {
     const noWidgets = document.createElement('p');
@@ -178,22 +189,9 @@ function renderWidgetsSidebar() {
         btn.appendChild(infoLine);
       }
       
-      // Button styling
-      btn.style.display = 'block';
-      btn.style.width = '100%';
-      btn.style.background = 'none';
-      btn.style.border = 'none';
-      btn.style.color = '#fff';
-      btn.style.textAlign = 'left';
-      btn.style.padding = '8px 10px'; // Updated padding for consistency
-      btn.style.cursor = 'pointer';
-      btn.style.borderRadius = '4px';
-      
-      // REMOVE the old category indicator code - we now use the infoLine above
-      
       // Button events
-      btn.onmouseover = () => btn.style.background = '#33415c';
-      btn.onmouseout = () => btn.style.background = 'none';
+      btn.onmouseover = () => {};
+      btn.onmouseout = () => {};
       btn.onclick = () => {
         const el = document.getElementById(`homepage-widget-${originalIndex}`);
         if (el) {
@@ -269,8 +267,6 @@ function renderCategoryAndSearch() {
   searchInput.placeholder = 'Search...';
   searchInput.value = state.search;
   
-  // Remove inline styles - will use CSS for consistent styling
-  
   searchInput.oninput = e => {
     clearTimeout(state.debounceTimer);
     state.debounceTimer = setTimeout(() => {
@@ -279,10 +275,13 @@ function renderCategoryAndSearch() {
       if (state.currentType === 'Home' || state.currentType === 'All') {
         applyWidgetFilters();
       } else {
-        // Update only the content list, not the entire sidebar
-        state.selected = null;
-        renderSidebarList(); // Only update the list part
-        renderContent();
+        // Update the sidebar list for all content types
+        renderSidebarList();
+        
+        // For images and websites, also update the content area without requiring a selection
+        if (state.currentType === 'image' || state.currentType === 'website' || !state.selected) {
+          renderContent();
+        }
       }
     }, 180);
   };
@@ -290,7 +289,7 @@ function renderCategoryAndSearch() {
   wrapper.appendChild(searchInput);
   
   // CATEGORY SECOND: Category dropdown
-  if (['pdf', 'video'].includes(state.currentType) || (state.currentType !== 'Home' && state.currentType !== 'All')) {
+  if (['pdf', 'video', 'image', 'website'].includes(state.currentType) || (state.currentType !== 'Home' && state.currentType !== 'All')) {
     state.categories = ['All'];
     for (const item of state.items) {
       if (item.type === state.currentType && item.category && !state.categories.includes(item.category)) {
@@ -300,13 +299,11 @@ function renderCategoryAndSearch() {
     
     const categoryLabel = document.createElement('h3');
     categoryLabel.textContent = 'Categories';
-    categoryLabel.style.marginTop = '16px'; // Space between search and categories
+    categoryLabel.className = 'category-label';
     wrapper.appendChild(categoryLabel);
     
     const catSelect = document.createElement('select');
     catSelect.className = 'cat-dropdown';
-    
-    // Remove inline styles - will use CSS for consistent styling
     
     for (const cat of state.categories) {
       const opt = document.createElement('option');
@@ -318,8 +315,13 @@ function renderCategoryAndSearch() {
     
     catSelect.onchange = e => {
       state.currentCategory = e.target.value;
-      state.selected = null;
-      renderSidebarList(); // Only update the list part
+      
+      // For images and websites, don't clear the selection as we're showing all items anyway
+      if (state.currentType !== 'image' && state.currentType !== 'website') {
+        state.selected = null;
+      }
+      
+      renderSidebarList();
       renderContent();
     };
     
@@ -331,7 +333,8 @@ function renderSidebarList() {
   const listDiv = document.getElementById('sidebar-list');
   listDiv.innerHTML = '';
   
-  if (['pdf', 'video'].includes(state.currentType)) {
+  // Handle PDF, Video, Image, and Website types
+  if (['pdf', 'video', 'image', 'website'].includes(state.currentType)) {
     let items = state.items.filter(i => i.type === state.currentType);
     if (state.currentCategory !== 'All') items = items.filter(i => i.category === state.currentCategory);
     if (state.search) {
@@ -353,32 +356,32 @@ function renderSidebarList() {
     // Create content navigation with same style as widget navigation
     const contentNav = document.createElement('div');
     contentNav.className = 'widget-sidebar-list';
-    contentNav.style.maxHeight = '50vh';
-    contentNav.style.overflowY = 'auto';
-    contentNav.style.paddingRight = '8px';
     
     for (const item of items) {
       const btn = document.createElement('button');
       
       // Create a container for title and close button
       const titleContainer = document.createElement('div');
-      titleContainer.style.display = 'flex';
-      titleContainer.style.justifyContent = 'space-between';
-      titleContainer.style.width = '100%';
-      titleContainer.style.alignItems = 'center';
+      titleContainer.className = 'title-container';
+      
+      // Add icon based on content type (for websites)
+      if (state.currentType === 'website') {
+        const icon = document.createElement('span');
+        icon.className = 'sidebar-item-icon';
+        icon.innerHTML = '🌐'; // Web icon
+        titleContainer.appendChild(icon);
+      }
       
       // Title text
       const titleText = document.createElement('span');
-      titleText.textContent = item.title;
+      titleText.textContent = item.title || 'Untitled';
       titleContainer.appendChild(titleText);
       
-      // Add close button for selected PDF or Video
+      // Add close button for selected items
       if (state.selected && state.selected.item && state.selected.item.path === item.path) {
         const closeBtn = document.createElement('span');
         closeBtn.textContent = '❌';
-        closeBtn.style.marginLeft = '8px';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.fontSize = '14px';
+        closeBtn.className = 'close-btn';
         closeBtn.title = `Close ${state.currentType.toUpperCase()}`;
         closeBtn.onclick = (e) => {
           e.stopPropagation(); // Prevent triggering the parent button click
@@ -391,23 +394,7 @@ function renderSidebarList() {
       
       btn.appendChild(titleContainer);
       btn.title = item.description || '';
-      
-      // Add styling consistent with widget sidebar buttons
-      btn.style.display = 'block';
-      btn.style.width = '100%';
-      btn.style.background = 'none';
-      btn.style.border = 'none';
-      btn.style.color = '#fff';
-      btn.style.textAlign = 'left';
-      btn.style.padding = '8px 10px'; // Updated padding for consistency
-      btn.style.cursor = 'pointer';
-      btn.style.borderRadius = '4px';
-      
-      // Add active class for selected item
-      if (state.selected && state.selected.item && state.selected.item.path === item.path) {
-        btn.className = 'active';
-        btn.style.background = '#33415c';
-      }
+      btn.className = state.selected && state.selected.item && state.selected.item.path === item.path ? 'active' : '';
       
       // Add category and description inline
       let infoText = '';
@@ -428,16 +415,30 @@ function renderSidebarList() {
       }
       
       // Add hover effects
-      btn.onmouseover = () => btn.style.background = '#33415c';
-      btn.onmouseout = () => {
-        if (!(state.selected && state.selected.item && state.selected.item.path === item.path)) {
-          btn.style.background = 'none';
-        }
-      };
+      btn.onmouseover = () => {};
+      btn.onmouseout = () => {};
       
       btn.onclick = () => {
-        state.selected = { type: state.currentType, item };
-        renderContent();
+        if (state.currentType === 'image') {
+          // For images, just show the full-size view
+          createFullSizeImageView(item);
+        } else if (state.currentType === 'website') {
+          // For websites, scroll to the card or highlight it
+          state.selected = { type: state.currentType, item };
+          // Find and scroll to the website card
+          const websiteCards = document.querySelectorAll('.website-card');
+          for (let i = 0; i < websiteCards.length; i++) {
+            if (websiteCards[i].dataset.path === item.path) {
+              websiteCards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+              websiteCards[i].classList.add('highlight');
+              setTimeout(() => websiteCards[i].classList.remove('highlight'), 1500);
+              break;
+            }
+          }
+        } else {
+          state.selected = { type: state.currentType, item };
+          renderContent();
+        }
         renderSidebarList(); // Update sidebar selection highlight
       };
       
@@ -460,7 +461,7 @@ async function renderContent() {
     `;
     return;
   }
-  // Video Viewer - remove close button
+  // Video Viewer - removed title and description
   if (state.selected && state.selected.type === 'video') {
     let videoEmbed = '';
     const path = state.selected.item.path;
@@ -472,8 +473,6 @@ async function renderContent() {
     c.innerHTML = `
       <div class="video-viewer-container">
         <div class="video-content">
-          <h2>${escapeHtml(state.selected.item.title)}</h2>
-          <p>${escapeHtml(state.selected.item.description || '')}</p>
           ${videoEmbed}
         </div>
       </div>
@@ -504,17 +503,12 @@ async function renderContent() {
       
       // Create title container for heading and category - now centered
       const titleContainer = document.createElement('div');
-      titleContainer.style.display = 'flex';
-      titleContainer.style.alignItems = 'center';
-      titleContainer.style.justifyContent = 'center'; // Center items horizontally
-      titleContainer.style.gap = '10px';
-      titleContainer.style.marginBottom = '10px';
-      titleContainer.style.width = '100%'; // Ensure full width
+      titleContainer.className = 'widget-title-container';
       
       // Add name heading
       const nameHeading = document.createElement('h4');
       nameHeading.textContent = widget.name;
-      nameHeading.style.margin = '0';
+      nameHeading.className = 'widget-name';
       titleContainer.appendChild(nameHeading);
       
       // Add category label next to the title
@@ -522,12 +516,6 @@ async function renderContent() {
         const categoryLabel = document.createElement('span');
         categoryLabel.className = 'widget-category-label';
         categoryLabel.textContent = widget.category;
-        categoryLabel.style.fontWeight = 'bold';
-        categoryLabel.style.color = '#666';
-        categoryLabel.style.fontSize = '0.9em';
-        categoryLabel.style.padding = '2px 6px';
-        categoryLabel.style.borderRadius = '4px';
-        categoryLabel.style.backgroundColor = '#f0f0f0';
         titleContainer.appendChild(categoryLabel);
       }
       
@@ -537,18 +525,6 @@ async function renderContent() {
       const widgetContent = document.createElement('div');
       widgetContent.className = 'widget-content-container';
       div.appendChild(widgetContent);
-      
-      
-      // Add inline styles to ensure no hover effects from CSS
-      const styleTag = document.createElement('style');
-      styleTag.textContent = `
-        .home-page-widget:hover {
-          box-shadow: none !important;
-          transform: none !important;
-          transition: none !important;
-        }
-      `;
-      document.head.appendChild(styleTag);
       
       widgetsDiv.appendChild(div);
 
@@ -561,14 +537,14 @@ async function renderContent() {
             try {
               window.renderWidget(widgetContent);
             } catch (e) {
-              widgetContent.innerHTML = `<div style="color:red;">Widget error: ${escapeHtml(e.message)}</div>`;
+              widgetContent.innerHTML = `<div class="widget-error">Widget error: ${escapeHtml(e.message)}</div>`;
             }
             delete window.renderWidget;
           }
           resolve();
         };
         script.onerror = () => {
-          widgetContent.innerHTML = `<div style="color:red;">Failed to load widget: ${widget.src}</div>`;
+          widgetContent.innerHTML = `<div class="widget-error">Failed to load widget: ${widget.src}</div>`;
           resolve();
         };
         document.body.appendChild(script);
@@ -576,6 +552,220 @@ async function renderContent() {
     }
     return;
   }
+  
+  // Image Gallery - Pinterest Style
+  if (state.currentType === 'image') {
+    // Filter images
+    let images = state.items.filter(i => i.type === 'image');
+    if (state.currentCategory !== 'All') {
+      images = images.filter(i => i.category === state.currentCategory);
+    }
+    if (state.search) {
+      const term = state.search;
+      images = images.filter(i =>
+        (i.title && i.title.toLowerCase().includes(term)) ||
+        (i.description && i.description.toLowerCase().includes(term))
+      );
+    }
+    
+    if (!images.length) {
+      c.innerHTML = '<p class="no-results-message">No images found.</p>';
+      return;
+    }
+    
+    // Create masonry container
+    c.innerHTML = '<div class="masonry-container"></div>';
+    const masonryContainer = document.querySelector('.masonry-container');
+    
+    // Add images to the masonry layout
+    for (const image of images) {
+      const imageItem = document.createElement('div');
+      imageItem.className = 'masonry-item';
+      
+      // Image wrapper to contain the image and overlay
+      const imageWrapper = document.createElement('div');
+      imageWrapper.className = 'image-wrapper';
+      
+      // Create actual image element
+      const img = document.createElement('img');
+      img.src = image.path;
+      img.alt = image.title || 'Image';
+      img.loading = 'lazy'; // Lazy load images
+      
+      // Create overlay for title and description
+      const overlay = document.createElement('div');
+      overlay.className = 'image-overlay';
+      
+      // Add title
+      const title = document.createElement('h3');
+      title.className = 'image-title';
+      title.textContent = image.title || 'Untitled';
+      
+      // Add description
+      const description = document.createElement('p');
+      description.className = 'image-description';
+      description.textContent = image.description || '';
+      
+      // Assemble the components
+      overlay.appendChild(title);
+      overlay.appendChild(description);
+      imageWrapper.appendChild(img);
+      imageWrapper.appendChild(overlay);
+      imageItem.appendChild(imageWrapper);
+      
+      // Add full-size image view when clicking
+      imageWrapper.addEventListener('click', () => {
+        createFullSizeImageView(image);
+      });
+      
+      masonryContainer.appendChild(imageItem);
+    }
+    
+    // Initialize masonry layout after images have loaded
+    let loadedImages = 0;
+    const totalImages = images.length;
+    
+    masonryContainer.querySelectorAll('img').forEach(img => {
+      // For completed images, update layout immediately
+      if (img.complete) {
+        loadedImages++;
+        if (loadedImages === totalImages) {
+          setTimeout(adjustMasonryLayout, 50); // Short delay to ensure rendering
+        }
+      } else {
+        // For images still loading, add load and error handlers
+        img.addEventListener('load', () => {
+          loadedImages++;
+          
+          // When all images are loaded, remove any placeholders if needed
+          if (loadedImages === totalImages) {
+            setTimeout(() => {
+              // Any final adjustments can go here
+            }, 50);
+          }
+        });
+        
+        img.addEventListener('error', () => {
+          loadedImages++;
+          if (loadedImages === totalImages) {
+            setTimeout(adjustMasonryLayout, 50);
+          }
+        });
+      }
+    });
+    
+    // Add window resize handler for responsive layout
+    window.addEventListener('resize', debounce(adjustMasonryLayout, 250));
+    
+    return;
+  }
+  
+  // Website Gallery - Grid Layout
+  if (state.currentType === 'website') {
+    // Filter websites
+    let websites = state.items.filter(i => i.type === 'website');
+    if (state.currentCategory !== 'All') {
+      websites = websites.filter(i => i.category === state.currentCategory);
+    }
+    if (state.search) {
+      const term = state.search;
+      websites = websites.filter(i =>
+        (i.title && i.title.toLowerCase().includes(term)) ||
+        (i.description && i.description.toLowerCase().includes(term))
+      );
+    }
+    
+    if (!websites.length) {
+      c.innerHTML = '<p class="no-results-message">No websites found.</p>';
+      return;
+    }
+    
+    // Create website gallery container
+    c.innerHTML = '<div class="website-gallery"></div>';
+    const galleryContainer = document.querySelector('.website-gallery');
+    
+    // Add website cards to the gallery
+    for (const website of websites) {
+      const websiteCard = document.createElement('div');
+      websiteCard.className = 'website-card';
+      websiteCard.dataset.path = website.path;
+      
+      // Create preview section 
+      const previewSection = document.createElement('div');
+      previewSection.className = 'website-preview';
+      
+      // Website icon/thumbnail
+      const iconContainer = document.createElement('div');
+      iconContainer.className = 'website-icon';
+      
+      // If thumbnail is provided, use it, otherwise use an icon
+      if (website.thumbnail) {
+        const thumbnail = document.createElement('img');
+        thumbnail.src = website.thumbnail;
+        thumbnail.alt = website.title || 'Website';
+        thumbnail.loading = 'lazy';
+        iconContainer.appendChild(thumbnail);
+      } else {
+        // Default icon for websites
+        iconContainer.innerHTML = '<span class="default-website-icon">🌐</span>';
+      }
+      
+      previewSection.appendChild(iconContainer);
+      websiteCard.appendChild(previewSection);
+      
+      // Website info section
+      const infoSection = document.createElement('div');
+      infoSection.className = 'website-info';
+      
+      // Add title
+      const title = document.createElement('h3');
+      title.className = 'website-title';
+      title.textContent = website.title || 'Untitled';
+      
+      // Add category tag if available
+      if (website.category) {
+        const categoryTag = document.createElement('span');
+        categoryTag.className = 'website-category-tag';
+        categoryTag.textContent = website.category;
+        title.appendChild(document.createTextNode(' '));
+        title.appendChild(categoryTag);
+      }
+      
+      infoSection.appendChild(title);
+      
+      // Add description
+      if (website.description) {
+        const description = document.createElement('p');
+        description.className = 'website-description';
+        description.textContent = website.description;
+        infoSection.appendChild(description);
+      }
+      
+      // Add visit button
+      const visitButton = document.createElement('a');
+      visitButton.className = 'visit-website-button';
+      visitButton.href = website.path;
+      visitButton.target = '_blank';
+      visitButton.rel = 'noopener noreferrer';
+      visitButton.textContent = 'Visit Website';
+      
+      infoSection.appendChild(visitButton);
+      websiteCard.appendChild(infoSection);
+      
+      // Add click handler for the entire card (except the button)
+      websiteCard.addEventListener('click', (e) => {
+        // Don't override the button click
+        if (e.target !== visitButton && !visitButton.contains(e.target)) {
+          window.open(website.path, '_blank', 'noopener,noreferrer');
+        }
+      });
+      
+      galleryContainer.appendChild(websiteCard);
+    }
+    
+    return;
+  }
+  
   // Empty for PDF/Video section with no selection
   if (['pdf', 'video'].includes(state.currentType)) {
     c.innerHTML = '';
@@ -613,13 +803,102 @@ async function renderContent() {
   }
 }
 
+// Function to create the full-size image view
+function createFullSizeImageView(image) {
+  // Remove any existing lightbox
+  const existingLightbox = document.getElementById('image-lightbox');
+  if (existingLightbox) {
+    existingLightbox.remove();
+  }
+  
+  // Create lightbox container
+  const lightbox = document.createElement('div');
+  lightbox.id = 'image-lightbox';
+  lightbox.className = 'image-lightbox';
+  
+  // Create the close button
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'lightbox-close-btn';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.onclick = () => lightbox.remove();
+  
+  // Create the image container
+  const imgContainer = document.createElement('div');
+  imgContainer.className = 'lightbox-image-container';
+  
+  // Create the image
+  const img = document.createElement('img');
+  img.src = image.path;
+  img.alt = image.title || 'Image';
+  
+  // Create the caption
+  const caption = document.createElement('div');
+  caption.className = 'lightbox-caption';
+  
+  const title = document.createElement('h3');
+  title.textContent = image.title || 'Untitled';
+  
+  const description = document.createElement('p');
+  description.textContent = image.description || '';
+  
+  // Assemble the lightbox
+  caption.appendChild(title);
+  caption.appendChild(description);
+  imgContainer.appendChild(img);
+  lightbox.appendChild(closeBtn);
+  lightbox.appendChild(imgContainer);
+  lightbox.appendChild(caption);
+  
+  // Add the lightbox to the document
+  document.body.appendChild(lightbox);
+  
+  // Close on click outside the image
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) {
+      lightbox.remove();
+    }
+  });
+  
+  // Close on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('image-lightbox')) {
+      lightbox.remove();
+    }
+  }, { once: true });
+}
+
+// Function to adjust masonry layout (simplified for column-based layout)
+function adjustMasonryLayout() {
+  // No specific adjustments needed for column-based layout
+  // This is now handled primarily by CSS
+}
+
+// Debounce function to limit how often a function is called
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 function renderMedia(item) {
   if (item.type === 'video') return '';
   if (item.type === 'pdf' || item.type === 'rule') {
     return `<embed src="${escapeHtml(item.path)}" type="application/pdf" height="220px">`;
   }
   if (item.type === 'website') {
-    return `<a class="button" href="${escapeHtml(item.path)}" target="_blank">Visit Website</a>`;
+    // Enhanced website rendering with icon and more styling
+    return `
+      <div class="website-link-container">
+        <span class="website-icon">🌐</span>
+        <a class="button website-button" href="${escapeHtml(item.path)}" target="_blank">Visit Website</a>
+      </div>
+    `;
   }
   return '';
 }
@@ -700,3 +979,9 @@ renderContent = function() {
     window.handleStateChange();
   }
 };
+
+// When rendering the flanking widget, just call renderWidget as usual.
+// The widget will use your CSS for layout, headings, and paragraphs.
+
+const container = document.getElementById('your-flanking-widget-container');
+window.renderWidget(container);

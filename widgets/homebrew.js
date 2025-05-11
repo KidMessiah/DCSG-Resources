@@ -23,7 +23,12 @@ window.renderWidget = function(container) {
             author: "Benevolent Evil",
             description: "The Elements and Beyond Revisions: Benevolent Evil has made balance revisions to some of the base DnD spells and some of the TEB spells, use the revisions for TEB but not for DnD. Whilst I agree with a lot of the changes, familiarity with spells is important to me and I'd prefer established knowledge is upheld for my players sake."
           },
-          // More spell items...
+          {
+            category: "free",
+            name: "Humblewood Campaign Setting",
+            author: "Hit Point Press",
+            description: ""
+          },
           {
             category: "restricted",
             name: "Arcadia",
@@ -46,12 +51,6 @@ window.renderWidget = function(container) {
             category: "restricted",
             name: "Sprouting Chaos PC",
             author: "Jonoman3000",
-            description: ""
-          },
-          {
-            category: "restricted",
-            name: "Humblewood Campaign Setting",
-            author: "Hit Point Press",
             description: ""
           },
           {

@@ -13,7 +13,9 @@ const state = {
   widgets: [], // Store widgets for homepage
   filteredWidgets: [], // Store filtered widgets
   widgetCategories: ['All'], // Store widget categories
-  currentWidgetCategory: 'All' // Current widget category filter
+  currentWidgetCategory: 'All', // Current widget category filter
+  cachedWidgetInstances: {}, // Store widget instances to preserve state
+  widgetContainers: {} // Store references to widget containers
 };
 
 // --- Utility ---
@@ -27,7 +29,7 @@ function truncateText(text, maxLength = 30) {
   return text.substring(0, maxLength) + '...';
 }
 
-// --- Data Loading ---
+//   --- Data Loading ---
 async function loadItems() {
   state.items = [];
   state.types = ['Home'];
@@ -527,6 +529,41 @@ async function renderContent() {
       div.appendChild(widgetContent);
       
       widgetsDiv.appendChild(div);
+      
+      // Save reference to the widget container
+      const widgetId = widget.src.replace(/[^a-z0-9]/gi, '_');
+      state.widgetContainers[widgetId] = widgetContent;
+
+      // Check if we have a cached instance for this widget
+      if (state.cachedWidgetInstances[widgetId]) {
+        console.log(`Restoring cached widget: ${widget.name}`);
+        
+        // If we've already loaded and cached this widget, just move the container
+        if (state.cachedWidgetInstances[widgetId].container && 
+            state.cachedWidgetInstances[widgetId].container.children.length > 0) {
+          
+          // Move all child nodes from cached container to the new container
+          while (state.cachedWidgetInstances[widgetId].container.firstChild) {
+            widgetContent.appendChild(state.cachedWidgetInstances[widgetId].container.firstChild);
+          }
+          
+          // Update the cached container reference
+          state.cachedWidgetInstances[widgetId].container = widgetContent;
+          
+          // Call widget's resetState function if it exists (for flanking.js specifically)
+          if (widget.src.includes('flanking.js') && window.resetFlankingWidget) {
+            setTimeout(() => {
+              try {
+                window.resetFlankingWidget();
+              } catch (e) {
+                console.error("Error resetting flanking widget:", e);
+              }
+            }, 100);
+          }
+          
+          continue; // Skip loading the script again
+        }
+      }
 
       // Dynamically load the JS file and render the widget
       await new Promise((resolve) => {
@@ -535,7 +572,16 @@ async function renderContent() {
         script.onload = () => {
           if (typeof window.renderWidget === 'function') {
             try {
-              window.renderWidget(widgetContent);
+              // Create and cache the widget instance
+              const widgetInstance = window.renderWidget(widgetContent);
+              
+              // Store the rendered widget and its container in our cache
+              const widgetId = widget.src.replace(/[^a-z0-9]/gi, '_');
+              state.cachedWidgetInstances[widgetId] = {
+                instance: widgetInstance,
+                container: widgetContent
+              };
+              
             } catch (e) {
               widgetContent.innerHTML = `<div class="widget-error">Widget error: ${escapeHtml(e.message)}</div>`;
             }

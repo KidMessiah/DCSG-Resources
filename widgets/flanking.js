@@ -189,7 +189,7 @@ Container Dimensions:
       console.log("Debug mode enabled - will log detailed information");
     },
     
-    // Disable debug mode
+    // Disable detailed debug mode
     disable: function() {
       this.enabled = false;
       console.log("Debug mode disabled");
@@ -2420,3 +2420,101 @@ function updateRulesText() {
   rightTextDiv.innerHTML = rulesText.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
   rightTextDiv.innerHTML = '<p>' + rightTextDiv.innerHTML + '</p>';
 }
+
+// Add this to the very end of the file
+
+// Modify the window.renderWidget function to return the widget instance and support state recovery
+window.renderWidget = function(container) {
+  if (!container.style.position || container.style.position === 'static') {
+    container.style.position = 'relative';
+  }
+
+  // Calculate minimum height needed for the content
+  function getMinHeight() {
+    const gridSize = 20; // The grid is 20x20
+    const cellPxEstimate = 32; // Estimated cell size
+    const gridHeight = gridSize * cellPxEstimate;
+    
+    // Calculate text heights more accurately
+    const titleHeight = 32; 
+    const instrHeight = 220; // Reduced from previous estimate
+    const rightTextHeight = 320; // Reduced from previous estimate
+    const paletteHeight = 54; // PALETTE_BTN + margin
+    const buttonHeight = 200; // 4 example buttons with gaps
+    const verticalMargins = 60; // Reduced margins
+    
+    // Take the max height needed for content beside the grid
+    const contentHeight = Math.max(
+      titleHeight + instrHeight + paletteHeight + verticalMargins,
+      titleHeight + rightTextHeight + buttonHeight + verticalMargins
+    );
+    
+    // Compare with grid height and take the greater one
+    // Add less extra padding (150px instead of 500px)
+    return Math.max(contentHeight, gridHeight);
+  }
+
+  // Set initial height, but we'll adjust it dynamically
+  const minHeight = getMinHeight();
+  container.style.height = minHeight + 'px';
+  container.style.minHeight = minHeight + 'px';
+
+  const widget = createFlankingWidget(container);
+  
+  // Store a reference to the widget in the container element
+  container.__flankingWidget = widget;
+  
+  // Add a function to adjust the height based on actual content
+  function adjustHeight() {
+    // Find the actual bottom-most element in the widget
+    const stage = widget.app.stage;
+    let maxY = 0;
+    
+    // Check all stage children to find the bottom-most element
+    function findMaxY(container) {
+      if (!container || !container.children) return;
+      
+      container.children.forEach(child => {
+        // Calculate the bottom edge of this element
+        const childBottomY = child.y + (child.height || 0);
+        maxY = Math.max(maxY, childBottomY);
+        
+        // Recursively check children
+        if (child.children && child.children.length > 0) {
+          findMaxY(child);
+        }
+      });
+    }
+    
+    findMaxY(stage);
+    
+    // Add a small padding (30px) to the bottom
+    const newHeight = maxY + 30;
+    
+    // Only adjust if the new height is valid and different from current
+    if (newHeight > 200 && Math.abs(container.clientHeight - newHeight) > 20) {
+      container.style.height = newHeight + 'px';
+    }
+  }
+  
+  // Call adjustHeight after initial render and on resize
+  setTimeout(adjustHeight, 100);
+  
+  // Override the original resize function to include height adjustment
+  const originalResize = widget.resize;
+  widget.resize = function() {
+    originalResize();
+    setTimeout(adjustHeight, 100);
+  };
+
+  // Expose a function to reset the widget state
+  window.resetFlankingWidget = function() {
+    if (widget && typeof widget.resetState === 'function') {
+      widget.resetState();
+    }
+    setTimeout(adjustHeight, 100);
+    return "Widget state has been reset";
+  };
+
+  return widget;
+};
