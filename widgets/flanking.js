@@ -75,7 +75,7 @@ PixiJS Debug Commands:
   pixiDebug.tree(container, depth)  - Show container hierarchy
   pixiDebug.highlight(container)    - Visually highlight an element
   pixiDebug.enable()                - Enable detailed debug logging
-  pixiDebug.disable()               - Disable debug logging
+  pixiDebug.disable()               - Disable detailed debug logging
       `);
     },
     
@@ -276,11 +276,18 @@ Container Dimensions:
   widgetContentDiv.appendChild(centerColumnDiv);
   widgetContentDiv.appendChild(rightColumnDiv);
 
-  // --- PixiJS Setup ---
-  const initialWidth = canvasContainerDiv.clientWidth || options.width || 600;
-  // Reduce initial height to be more proportional to the content
-  const initialHeight = canvasContainerDiv.clientHeight || options.height || 600;
-  
+  // --- PixiJS Initialization with DOM/size check ---
+  const initialWidth = container.querySelector('.flanking-widget-canvas-container')?.clientWidth || options.width || 600;
+  const initialHeight = container.querySelector('.flanking-widget-canvas-container')?.clientHeight || options.height || 600;
+  console.log('[FlankingWidget] PixiJS setup:', {
+    container: container,
+    canvasContainerDiv,
+    initialWidth,
+    initialHeight,
+    containerRect: container.getBoundingClientRect(),
+    canvasRect: canvasContainerDiv.getBoundingClientRect(),
+    attachedToDOM: document.body.contains(container)
+  });
   const app = new PIXI.Application({
     width: initialWidth,
     height: initialHeight,
@@ -289,11 +296,16 @@ Container Dimensions:
     autoDensity: true,
     antialias: true,
   });
-  
   app.view.style.display = 'block';
   app.view.style.width = '100%';
   app.view.style.height = '100%';
   canvasContainerDiv.appendChild(app.view);
+  setTimeout(() => {
+    const rect = canvasContainerDiv.getBoundingClientRect();
+    console.log('[FlankingWidget] After Pixi append, canvasContainerDiv rect:', rect);
+    console.log('[FlankingWidget] Pixi app.view size:', app.view.width, app.view.height, app.view.style.width, app.view.style.height);
+    console.log('[FlankingWidget] Pixi renderer size:', app.renderer.width, app.renderer.height);
+  }, 200);
   
   // Prevent default context menu
   app.view.addEventListener('contextmenu', e => e.preventDefault());
@@ -1802,7 +1814,21 @@ Container Dimensions:
 
   // Initialize layout
   updateLayout();
+  console.log('[FlankingWidget Debug] After updateLayout:', {
+    stageChildren: app.stage.children.length,
+    gridLayerChildren: gridLayer.children.length,
+    tokenLayerChildren: tokenLayer.children.length,
+    gridLayerBounds: gridLayer.getBounds(),
+    tokenLayerBounds: tokenLayer.getBounds()
+  });
   drawGrid();
+  console.log('[FlankingWidget Debug] After drawGrid:', {
+    stageChildren: app.stage.children.length,
+    gridLayerChildren: gridLayer.children.length,
+    tokenLayerChildren: tokenLayer.children.length,
+    gridLayerBounds: gridLayer.getBounds(),
+    tokenLayerBounds: tokenLayer.getBounds()
+  });
 
   // --- Example Scenarios ---
   // Redesigned example buttons function to create 2 columns of smaller buttons
@@ -2322,7 +2348,6 @@ window.renderWidget = function(container) {
     const gridSize = 20; // The grid is 20x20
     const cellPxEstimate = 32; // Estimated cell size
     const gridHeight = gridSize * cellPxEstimate;
-    
     // Calculate text heights more accurately
     const titleHeight = 32; 
     const instrHeight = 220; // Reduced from previous estimate
@@ -2330,13 +2355,11 @@ window.renderWidget = function(container) {
     const paletteHeight = 54; // PALETTE_BTN + margin
     const buttonHeight = 200; // 4 example buttons with gaps
     const verticalMargins = 60; // Reduced margins
-    
     // Take the max height needed for content beside the grid
     const contentHeight = Math.max(
       titleHeight + instrHeight + paletteHeight + verticalMargins,
       titleHeight + rightTextHeight + buttonHeight + verticalMargins
     );
-    
     // Compare with grid height and take the greater one
     // Add less extra padding (150px instead of 500px)
     return Math.max(contentHeight, gridHeight);
@@ -2347,174 +2370,66 @@ window.renderWidget = function(container) {
   container.style.height = minHeight + 'px';
   container.style.minHeight = minHeight + 'px';
 
-  const widget = createFlankingWidget(container);
-  
-  // Add a function to adjust the height based on actual content
-  function adjustHeight() {
-    // Find the actual bottom-most element in the widget
-    const stage = widget.app.stage;
-    let maxY = 0;
-    
-    // Check all stage children to find the bottom-most element
-    function findMaxY(container) {
-      if (!container || !container.children) return;
-      
-      container.children.forEach(child => {
-        // Calculate the bottom edge of this element
-        const childBottomY = child.y + (child.height || 0);
-        maxY = Math.max(maxY, childBottomY);
-        
-        // Recursively check children
-        if (child.children && child.children.length > 0) {
-          findMaxY(child);
+  // --- Wait for container to be ready before creating widget ---
+  function renderWhenReady(attempt = 0) {
+    if (attempt > 20) throw new Error('Flanking widget: Container not ready for PixiJS initialization.');
+    const rect = container.getBoundingClientRect();
+    if (!document.body.contains(container) || rect.width < 10 || rect.height < 10) {
+      setTimeout(() => renderWhenReady(attempt + 1), 100);
+      return;
+    }
+    const widget = createFlankingWidget(container);
+    container.__flankingWidget = widget;
+    // Add a function to adjust the height based on actual content
+    function adjustHeight() {
+      const stage = widget.app.stage;
+      let maxY = 0;
+      function findMaxY(container) {
+        if (!container || !container.children) return;
+        container.children.forEach(child => {
+          const childBottomY = child.y + (child.height || 0);
+          maxY = Math.max(maxY, childBottomY);
+          if (child.children && child.children.length > 0) {
+            findMaxY(child);
+          }
+        });
+      }
+      findMaxY(stage);
+      const newHeight = maxY + 30;
+      if (newHeight > 200 && Math.abs(container.clientHeight - newHeight) > 20) {
+        container.style.height = newHeight + 'px';
+      }
+    }
+    setTimeout(adjustHeight, 100);
+    const originalResize = widget.resize;
+    widget.resize = function() {
+      originalResize();
+      setTimeout(adjustHeight, 100);
+    };
+    window.resetFlankingWidget = function() {
+      if (widget && typeof widget.resetState === 'function') {
+        widget.resetState();
+      }
+      setTimeout(adjustHeight, 100);
+      return "Widget state has been reset";
+    };
+    setTimeout(() => {
+      if (widget && typeof widget.resize === 'function') {
+        widget.resize();
+      }
+      // --- Force redraw after widget creation ---
+      if (widget && widget.app && widget.app.stage) {
+        if (typeof widget.drawGrid === 'function') {
+          console.log('[FlankingWidget] Forcing drawGrid() after widget creation');
+          widget.drawGrid();
         }
-      });
-    }
-    
-    findMaxY(stage);
-    
-    // Add a small padding (30px) to the bottom
-    const newHeight = maxY + 30;
-    
-    // Only adjust if the new height is valid and different from current
-    if (newHeight > 200 && Math.abs(container.clientHeight - newHeight) > 20) {
-      container.style.height = newHeight + 'px';
-    }
-  }
-  
-  // Call adjustHeight after initial render and on resize
-  setTimeout(adjustHeight, 100);
-  
-  // Override the original resize function to include height adjustment
-  const originalResize = widget.resize;
-  widget.resize = function() {
-    originalResize();
-    setTimeout(adjustHeight, 100);
-  };
-
-  // @ts-ignore
-  window.resetFlankingWidget = function() {
-    widget.resetState();
-    setTimeout(adjustHeight, 100);
-    return "Widget state has been reset";
-  };
-
-  return widget;
-};
-
-// --- Helper Functions ---
-function updateRulesText() {
-  let rulesText = "This optional rule rewards tactical cooperation by providing attack roll bonuses when multiple creatures surround an enemy.\n\n";
-  
-  if (diagonalFlankingEnabled) {
-    rulesText += "• When you have an ally on the opposite side or diagonal of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
-      "• For each additional ally on any other side or diagonal of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
-  } else {
-    rulesText += "• When you have an ally on the opposite side of a creature, you gain a +2 bonus to melee attack rolls against that creature.\n\n" +
-      "• For each additional ally on any other side of the creature, you gain an additional +1 bonus (maximum +4).\n\n";
-  }
-  
-  rulesText += "• You lose all flanking bonuses if you are being flanked yourself, as your attention is divided.\n\n" +
-    "• Creatures with blindsight, tremorsense, or truesight are immune to flanking, as their heightened senses prevent them from being caught off guard.";
-  
-  rightTextDiv.innerHTML = rulesText.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-  rightTextDiv.innerHTML = '<p>' + rightTextDiv.innerHTML + '</p>';
-}
-
-// Add this to the very end of the file
-
-// Modify the window.renderWidget function to return the widget instance and support state recovery
-window.renderWidget = function(container) {
-  if (!container.style.position || container.style.position === 'static') {
-    container.style.position = 'relative';
-  }
-
-  // Calculate minimum height needed for the content
-  function getMinHeight() {
-    const gridSize = 20; // The grid is 20x20
-    const cellPxEstimate = 32; // Estimated cell size
-    const gridHeight = gridSize * cellPxEstimate;
-    
-    // Calculate text heights more accurately
-    const titleHeight = 32; 
-    const instrHeight = 220; // Reduced from previous estimate
-    const rightTextHeight = 320; // Reduced from previous estimate
-    const paletteHeight = 54; // PALETTE_BTN + margin
-    const buttonHeight = 200; // 4 example buttons with gaps
-    const verticalMargins = 60; // Reduced margins
-    
-    // Take the max height needed for content beside the grid
-    const contentHeight = Math.max(
-      titleHeight + instrHeight + paletteHeight + verticalMargins,
-      titleHeight + rightTextHeight + buttonHeight + verticalMargins
-    );
-    
-    // Compare with grid height and take the greater one
-    // Add less extra padding (150px instead of 500px)
-    return Math.max(contentHeight, gridHeight);
-  }
-
-  // Set initial height, but we'll adjust it dynamically
-  const minHeight = getMinHeight();
-  container.style.height = minHeight + 'px';
-  container.style.minHeight = minHeight + 'px';
-
-  const widget = createFlankingWidget(container);
-  
-  // Store a reference to the widget in the container element
-  container.__flankingWidget = widget;
-  
-  // Add a function to adjust the height based on actual content
-  function adjustHeight() {
-    // Find the actual bottom-most element in the widget
-    const stage = widget.app.stage;
-    let maxY = 0;
-    
-    // Check all stage children to find the bottom-most element
-    function findMaxY(container) {
-      if (!container || !container.children) return;
-      
-      container.children.forEach(child => {
-        // Calculate the bottom edge of this element
-        const childBottomY = child.y + (child.height || 0);
-        maxY = Math.max(maxY, childBottomY);
-        
-        // Recursively check children
-        if (child.children && child.children.length > 0) {
-          findMaxY(child);
+        if (typeof widget.updateLayout === 'function') {
+          console.log('[FlankingWidget] Forcing updateLayout() after widget creation');
+          widget.updateLayout();
         }
-      });
-    }
-    
-    findMaxY(stage);
-    
-    // Add a small padding (30px) to the bottom
-    const newHeight = maxY + 30;
-    
-    // Only adjust if the new height is valid and different from current
-    if (newHeight > 200 && Math.abs(container.clientHeight - newHeight) > 20) {
-      container.style.height = newHeight + 'px';
-    }
+      }
+    }, 150);
+    return widget;
   }
-  
-  // Call adjustHeight after initial render and on resize
-  setTimeout(adjustHeight, 100);
-  
-  // Override the original resize function to include height adjustment
-  const originalResize = widget.resize;
-  widget.resize = function() {
-    originalResize();
-    setTimeout(adjustHeight, 100);
-  };
-
-  // Expose a function to reset the widget state
-  window.resetFlankingWidget = function() {
-    if (widget && typeof widget.resetState === 'function') {
-      widget.resetState();
-    }
-    setTimeout(adjustHeight, 100);
-    return "Widget state has been reset";
-  };
-
-  return widget;
+  return renderWhenReady();
 };

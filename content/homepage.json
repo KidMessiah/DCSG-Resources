@@ -1,10 +1,12 @@
 [
-  { "name": "Variant Inspiration", "src": "widgets/inspiration.js", "category": "Small" },
+  { "name": "IMPORTANT", "src": "widgets/important.js", "category": "IMPORTANT" },
   { "name": "Variant Flanking", "src": "widgets/flanking.js", "category": "Small" },
+  { "name": "Variant Inspiration", "src": "widgets/inspiration.js", "category": "Small" },
   { "name": "Flexible Casting", "src": "widgets/flexcasting.js", "category": "Large" },
   { "name": "Variant Bonus Action", "src": "widgets/flexbonus.js", "category": "Medium" },
   { "name": "Variant Resurrection", "src": "widgets/resurrection.js", "category": "Medium" },
   { "name": "Variant Intelligence", "src": "widgets/intelligence.js", "category": "Small" },
+  { "name": "Additional Skills", "src": "widgets/skills.js", "category": "Small" },
   { "name": "Versatile Heritage", "src": "widgets/heritage.js", "category": "Small" },
   { "name": "Signature Spells", "src": "widgets/signature.js", "category": "Large" },
   { "name": "Warlock Spells", "src": "widgets/warlock.js", "category": "Medium" },

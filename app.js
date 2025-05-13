@@ -1,35 +1,143 @@
-// --- Central State ---
+/**
+ * AwkwardDM Resources App
+ * A centralized hub for D&D resources including PDFs, videos, images, websites, and custom widgets.
+ * Provides a sidebar navigation and content area for displaying different types of media.
+ */
+
+// =============================================================================
+// STATE MANAGEMENT
+// =============================================================================
+
+/**
+ * Central application state object that stores all data needed across the application
+ * Includes content data, UI state, filter settings, and widget management
+ */
 const state = {
-  files: [{ url: 'content/list.json' }],
-  items: [],
-  types: [],
-  categories: [],
-  currentType: 'Home',
-  currentCategory: 'All',
-  search: '',
-  selected: null, // {type, item}
-  dom: {},
-  debounceTimer: null,
-  widgets: [], // Store widgets for homepage
-  filteredWidgets: [], // Store filtered widgets
-  widgetCategories: ['All'], // Store widget categories
-  currentWidgetCategory: 'All', // Current widget category filter
-  cachedWidgetInstances: {}, // Store widget instances to preserve state
-  widgetContainers: {} // Store references to widget containers
+  files: [{ url: 'content/list.json' }],  // Data sources to load
+  items: [],                              // All content items from data sources
+  types: [],                              // Available content type categories
+  categories: [],                         // Available subcategories for current type
+  currentType: 'Home',                    // Currently active content type
+  currentCategory: 'All',                 // Currently selected category filter
+  search: '',                             // Current search filter text
+  selected: null,                         // Currently selected item {type, item}
+  dom: {},                                // Cached DOM element references
+  debounceTimer: null,                    // Timer for search input debouncing
+  widgets: [],                            // Available widgets for homepage
+  filteredWidgets: [],                    // Widgets filtered by search/category
+  widgetCategories: ['All'],              // Available widget categories
+  currentWidgetCategory: 'All',           // Current widget category filter
+  cachedWidgetInstances: {},              // Cached widget instances to preserve state
+  widgetContainers: {}                    // References to widget container elements
 };
 
-// --- Utility ---
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+/**
+ * Escapes HTML special characters to prevent XSS vulnerabilities
+ * @param {string} str - The string to sanitize
+ * @return {string} Sanitized string with HTML entities replaced
+ */
 const escapeHtml = str => String(str).replace(/[&<>"']/g, m => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[m]));
 
-// Helper function to truncate text
+/**
+ * Truncates text to a specified length and adds ellipsis
+ * Used for previews in sidebar and cards
+ * @param {string} text - The text to truncate
+ * @param {number} maxLength - Maximum length before truncation
+ * @return {string} Truncated text with ellipsis if needed
+ */
 function truncateText(text, maxLength = 30) {
   if (!text || text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 }
 
-//   --- Data Loading ---
+/**
+ * Generates a favicon URL for a website
+ * @param {string} websiteUrl - The website URL to get favicon for
+ * @return {string|null} Favicon URL or null if invalid
+ */
+function getFaviconUrl(websiteUrl) {
+  try {
+    const url = new URL(websiteUrl);
+    return `https://${url.hostname}/favicon.ico`;
+  } catch (e) {
+    console.error("Invalid URL for favicon:", websiteUrl);
+    return null;
+  }
+}
+
+/**
+ * Generates a website thumbnail URL using screenshotmachine.com API
+ * @param {string} websiteUrl - The website URL to generate thumbnail for
+ * @return {string|null} Thumbnail URL or null if invalid
+ */
+function getWebsiteThumbnailUrl(websiteUrl) {
+  try {
+    const cleanUrl = websiteUrl.replace(/\/$/, '');
+    const encodedUrl = encodeURIComponent(cleanUrl);
+    return `https://api.screenshotmachine.com?key=478d1a&url=${encodedUrl}&dimension=1024x768&delay=200`;
+  } catch (e) {
+    console.error("Invalid URL for thumbnail:", websiteUrl);
+    return null;
+  }
+}
+
+/**
+ * Capitalizes a string with special handling for certain abbreviations
+ * @param {string} str - String to capitalize
+ * @return {string} Capitalized string
+ */
+function capitalize(str) {
+  if (!str) return '';
+  
+  const uppercaseTerms = ['pdf', 'dm', 'gm', 'npc', 'pc'];
+  if (uppercaseTerms.includes(str.toLowerCase())) {
+    return str.toUpperCase();
+  }
+  
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Debounce function to limit how often a function is called
+ * Used for search and resize handlers
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Wait time in milliseconds
+ * @return {Function} Debounced function
+ */
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/**
+ * Checks if current page is the homepage
+ * @return {boolean} True if homepage
+ */
+function isHomepage() {
+  return location.pathname.endswith('/') || location.pathname.endswith('index.html');
+}
+
+// =============================================================================
+// DATA LOADING
+// =============================================================================
+
+/**
+ * Loads all content items and widgets from data sources
+ * Initializes type lists, categories, and widget data
+ */
 async function loadItems() {
   state.items = [];
   state.types = ['Home'];
@@ -39,7 +147,7 @@ async function loadItems() {
     const res = await fetch('content/homepage.json');
     if (res.ok) {
       state.widgets = await res.json();
-      state.filteredWidgets = [...state.widgets]; // Initialize filtered list
+      state.filteredWidgets = [...state.widgets];
       
       // Extract unique widget categories
       state.widgetCategories = ['All'];
@@ -53,29 +161,29 @@ async function loadItems() {
     console.error("Error loading widgets:", e);
   }
   
+  // Load content items
   for (const file of state.files) {
     try {
       const res = await fetch(file.url);
       if (!res.ok) continue;
       const data = await res.json();
       
-      // Handle the nested structure
+      // Handle both nested and flat data structures
       if (Array.isArray(data)) {
-        // Support for legacy flat array format
+        // Legacy flat array format
         for (const item of data) {
           state.items.push(item);
           if (item.type && !state.types.includes(item.type)) state.types.push(item.type);
         }
       } else {
-        // New nested format
+        // New nested format with type as parent key
         for (const type in data) {
           if (!state.types.includes(type)) state.types.push(type);
           
-          // Add each item with its type property
           for (const item of data[type]) {
             state.items.push({
               ...item,
-              type // Add the type from the parent key
+              type // Add type from parent key
             });
           }
         }
@@ -86,43 +194,55 @@ async function loadItems() {
   }
 }
 
-// --- DOM Cache ---
+// =============================================================================
+// DOM MANIPULATION
+// =============================================================================
+
+/**
+ * Caches DOM elements for improved performance
+ * Prevents repeated DOM queries
+ */
 function cacheDom() {
   state.dom.sidebar = document.getElementById('sidebar');
   state.dom.content = document.getElementById('content');
 }
 
-// --- Sidebar Rendering ---
-function renderSidebar() {
-  const sb = state.dom.sidebar;
+// =============================================================================
+// WIDGET MANAGEMENT
+// =============================================================================
+
+/**
+ * Applies filters to widgets based on search and category
+ * Updates the filteredWidgets array and rerenders widget sidebar
+ */
+function applyWidgetFilters() {
+  const searchTerm = state.search.toLowerCase();
+  const category = state.currentWidgetCategory;
   
-  // Only rebuild the basic structure if it doesn't exist
-  if (!document.getElementById('section-slideout')) {
-    sb.innerHTML = `
-      <h1>AwkwardDM Resources</h1>
-      <div class="section-slideout" id="section-slideout"></div>
-      <div class="cat-search-wrapper" id="cat-search-wrapper"></div>
-      <div id="sidebar-list"></div>
-    `;
-  }
+  state.filteredWidgets = state.widgets.filter(widget => {
+    // Category filter
+    const categoryMatch = category === 'All' || widget.category === category;
+    
+    // Search filter
+    const searchMatch = searchTerm === '' || 
+      widget.name.toLowerCase().includes(searchTerm) ||
+      (widget.category && widget.category.toLowerCase().includes(searchTerm));
+    
+    return categoryMatch && searchMatch;
+  });
   
-  renderSectionSlideout();
-  renderCategoryAndSearch();
-  
-  // Add widget list in sidebar if on homepage
-  if (state.currentType === 'Home' || state.currentType === 'All') {
-    renderWidgetsSidebar();
-  } else {
-    renderSidebarList();
-  }
+  renderWidgetsSidebar();
 }
 
-// Improved function to render widgets in sidebar
+/**
+ * Renders widgets in the sidebar for the homepage view
+ * Displays filtered widgets with category filter control
+ */
 function renderWidgetsSidebar() {
   const listDiv = document.getElementById('sidebar-list');
   listDiv.innerHTML = '';
   
-  // Add widget category filter
+  // Add widget category filter dropdown
   if (state.widgetCategories.length > 1) {
     const categoryFilter = document.createElement('div');
     categoryFilter.className = 'widget-category-filter';
@@ -153,18 +273,19 @@ function renderWidgetsSidebar() {
     listDiv.appendChild(categoryFilter);
   }
   
-  // Create widget navigation
+  // Create widget navigation list
   const widgetNav = document.createElement('nav');
   widgetNav.id = 'homepage-widget-nav';
   widgetNav.className = 'widget-sidebar-list';
   
-  // Display filtered widgets
+  // Handle empty results
   if (state.filteredWidgets.length === 0) {
     const noWidgets = document.createElement('p');
     noWidgets.textContent = 'No widgets match your filters';
     noWidgets.className = 'no-results';
     widgetNav.appendChild(noWidgets);
   } else {
+    // Create navigation buttons for each widget
     state.filteredWidgets.forEach((widget, idx) => {
       const originalIndex = state.widgets.findIndex(w => w.src === widget.src);
       const btn = document.createElement('button');
@@ -191,13 +312,33 @@ function renderWidgetsSidebar() {
         btn.appendChild(infoLine);
       }
       
-      // Button events
+      // Button hover and click events
       btn.onmouseover = () => {};
       btn.onmouseout = () => {};
       btn.onclick = () => {
         const el = document.getElementById(`homepage-widget-${originalIndex}`);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Center the widget in the viewport
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Also use window.scrollTo for more precise centering
+          const rect = el.getBoundingClientRect();
+          const targetMiddle = rect.top + (rect.height / 2);
+          const viewportMiddle = window.innerHeight / 2;
+          window.scrollTo({
+            top: window.pageYOffset + targetMiddle - viewportMiddle,
+            behavior: 'smooth'
+          });
+          // Add yellow highlight
+          el.classList.add('highlight');
+          if (!el.style.transition) {
+            el.style.transition = 'background-color 0.3s';
+          }
+          const originalBg = el.style.backgroundColor;
+          el.style.backgroundColor = '#ffff99';
+          setTimeout(() => {
+            el.style.backgroundColor = originalBg;
+            el.classList.remove('highlight');
+          }, 1500);
         }
       };
       widgetNav.appendChild(btn);
@@ -207,26 +348,42 @@ function renderWidgetsSidebar() {
   listDiv.appendChild(widgetNav);
 }
 
-// New function to apply all widget filters (search and category)
-function applyWidgetFilters() {
-  const searchTerm = state.search.toLowerCase();
-  const category = state.currentWidgetCategory;
+// =============================================================================
+// SIDEBAR RENDERING
+// =============================================================================
+
+/**
+ * Renders the complete sidebar including type selector, filters, and content list
+ * Determines which components to render based on current content type
+ */
+function renderSidebar() {
+  const sb = state.dom.sidebar;
   
-  state.filteredWidgets = state.widgets.filter(widget => {
-    // Category filter
-    const categoryMatch = category === 'All' || widget.category === category;
-    
-    // Search filter
-    const searchMatch = searchTerm === '' || 
-      widget.name.toLowerCase().includes(searchTerm) ||
-      (widget.category && widget.category.toLowerCase().includes(searchTerm));
-    
-    return categoryMatch && searchMatch;
-  });
+  // Only rebuild basic structure if needed
+  if (!document.getElementById('section-slideout')) {
+    sb.innerHTML = `
+      <h1>AwkwardDM Resources</h1>
+      <div class="section-slideout" id="section-slideout"></div>
+      <div class="cat-search-wrapper" id="cat-search-wrapper"></div>
+      <div id="sidebar-list"></div>
+    `;
+  }
   
-  renderWidgetsSidebar();
+  renderSectionSlideout();
+  renderCategoryAndSearch();
+  
+  // Render appropriate sidebar list based on content type
+  if (state.currentType === 'Home' || state.currentType === 'All') {
+    renderWidgetsSidebar();
+  } else {
+    renderSidebarList();
+  }
 }
 
+/**
+ * Renders the content type selector dropdown in the sidebar
+ * Allows switching between different content types
+ */
 function renderSectionSlideout() {
   const slideout = document.getElementById('section-slideout');
   slideout.innerHTML = `
@@ -234,6 +391,8 @@ function renderSectionSlideout() {
     <div class="section-slideout-options" style="display:none;"></div>
   `;
   const optionsDiv = slideout.querySelector('.section-slideout-options');
+  
+  // Add buttons for each content type
   for (const type of state.types) {
     if (type === state.currentType) continue;
     const btn = document.createElement('button');
@@ -250,7 +409,8 @@ function renderSectionSlideout() {
     };
     optionsDiv.appendChild(btn);
   }
-  // Toggle options
+  
+  // Toggle slideout display
   slideout.querySelector('.section-slideout-base').onclick = e => {
     e.stopPropagation();
     optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
@@ -258,11 +418,15 @@ function renderSectionSlideout() {
   document.addEventListener('click', () => { optionsDiv.style.display = 'none'; }, { once: true });
 }
 
+/**
+ * Renders the search input and category selector in the sidebar
+ * Handles different category options based on content type
+ */
 function renderCategoryAndSearch() {
   const wrapper = document.getElementById('cat-search-wrapper');
   wrapper.innerHTML = '';
   
-  // SEARCH FIRST: Search input without label
+  // Create search input
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
   searchInput.id = 'search';
@@ -290,8 +454,9 @@ function renderCategoryAndSearch() {
   
   wrapper.appendChild(searchInput);
   
-  // CATEGORY SECOND: Category dropdown
+  // Add category selector for content types that support it
   if (['pdf', 'video', 'image', 'website'].includes(state.currentType) || (state.currentType !== 'Home' && state.currentType !== 'All')) {
+    // Build category list for current content type
     state.categories = ['All'];
     for (const item of state.items) {
       if (item.type === state.currentType && item.category && !state.categories.includes(item.category)) {
@@ -307,6 +472,7 @@ function renderCategoryAndSearch() {
     const catSelect = document.createElement('select');
     catSelect.className = 'cat-dropdown';
     
+    // Add options for each category
     for (const cat of state.categories) {
       const opt = document.createElement('option');
       opt.value = cat;
@@ -318,7 +484,7 @@ function renderCategoryAndSearch() {
     catSelect.onchange = e => {
       state.currentCategory = e.target.value;
       
-      // For images and websites, don't clear the selection as we're showing all items anyway
+      // Preserve selection for gallery views
       if (state.currentType !== 'image' && state.currentType !== 'website') {
         state.selected = null;
       }
@@ -331,12 +497,17 @@ function renderCategoryAndSearch() {
   }
 }
 
+/**
+ * Renders the list of content items in the sidebar for non-homepage views
+ * Filters items based on current type, category, and search
+ */
 function renderSidebarList() {
   const listDiv = document.getElementById('sidebar-list');
   listDiv.innerHTML = '';
   
   // Handle PDF, Video, Image, and Website types
   if (['pdf', 'video', 'image', 'website'].includes(state.currentType)) {
+    // Filter items by current type, category, and search term
     let items = state.items.filter(i => i.type === state.currentType);
     if (state.currentCategory !== 'All') items = items.filter(i => i.category === state.currentCategory);
     if (state.search) {
@@ -347,6 +518,7 @@ function renderSidebarList() {
       );
     }
     
+    // Show message if no items match filters
     if (items.length === 0) {
       const noItems = document.createElement('p');
       noItems.textContent = `No ${state.currentType}s found.`;
@@ -355,10 +527,11 @@ function renderSidebarList() {
       return;
     }
     
-    // Create content navigation with same style as widget navigation
+    // Create content navigation list
     const contentNav = document.createElement('div');
     contentNav.className = 'widget-sidebar-list';
     
+    // Create list items for each content item
     for (const item of items) {
       const btn = document.createElement('button');
       
@@ -370,7 +543,7 @@ function renderSidebarList() {
       if (state.currentType === 'website') {
         const icon = document.createElement('span');
         icon.className = 'sidebar-item-icon';
-        icon.innerHTML = '🌐'; // Web icon
+        icon.innerHTML = '🌐';
         titleContainer.appendChild(icon);
       }
       
@@ -386,7 +559,7 @@ function renderSidebarList() {
         closeBtn.className = 'close-btn';
         closeBtn.title = `Close ${state.currentType.toUpperCase()}`;
         closeBtn.onclick = (e) => {
-          e.stopPropagation(); // Prevent triggering the parent button click
+          e.stopPropagation();
           state.selected = null;
           renderContent();
           renderSidebarList();
@@ -398,7 +571,7 @@ function renderSidebarList() {
       btn.title = item.description || '';
       btn.className = state.selected && state.selected.item && state.selected.item.path === item.path ? 'active' : '';
       
-      // Add category and description inline
+      // Add category and description info
       let infoText = '';
       if (item.category) {
         infoText = item.category;
@@ -416,18 +589,17 @@ function renderSidebarList() {
         btn.appendChild(infoLine);
       }
       
-      // Add hover effects
+      // Add hover and click event handlers
       btn.onmouseover = () => {};
       btn.onmouseout = () => {};
       
       btn.onclick = () => {
         if (state.currentType === 'image') {
-          // For images, just show the full-size view
+          // For images, show full-size view
           createFullSizeImageView(item);
         } else if (state.currentType === 'website') {
-          // For websites, scroll to the card or highlight it
+          // For websites, scroll to and highlight the card
           state.selected = { type: state.currentType, item };
-          // Find and scroll to the website card
           const websiteCards = document.querySelectorAll('.website-card');
           for (let i = 0; i < websiteCards.length; i++) {
             if (websiteCards[i].dataset.path === item.path) {
@@ -438,10 +610,11 @@ function renderSidebarList() {
             }
           }
         } else {
+          // For other content types, update selection and render content
           state.selected = { type: state.currentType, item };
           renderContent();
         }
-        renderSidebarList(); // Update sidebar selection highlight
+        renderSidebarList(); // Update selection highlighting
       };
       
       contentNav.appendChild(btn);
@@ -451,10 +624,18 @@ function renderSidebarList() {
   }
 }
 
-// --- Content Rendering ---
+// =============================================================================
+// CONTENT RENDERING
+// =============================================================================
+
+/**
+ * Renders the main content area based on current selection and content type
+ * Handles different content types: PDF, video, image gallery, website gallery, and homepage
+ */
 async function renderContent() {
   const c = state.dom.content;
-  // PDF Viewer - remove close button
+  
+  // PDF Viewer
   if (state.selected && state.selected.type === 'pdf') {
     c.innerHTML = `
       <div class="pdf-viewer-container">
@@ -463,7 +644,8 @@ async function renderContent() {
     `;
     return;
   }
-  // Video Viewer - removed title and description
+  
+  // Video Viewer
   if (state.selected && state.selected.type === 'video') {
     let videoEmbed = '';
     const path = state.selected.item.path;
@@ -481,7 +663,8 @@ async function renderContent() {
     `;
     return;
   }
-  // Home Page with widgets (improved)
+  
+  // Home Page with widgets
   if (state.currentType === 'Home' || state.currentType === 'All') {
     c.innerHTML = `
       <div class="home-page">
@@ -496,14 +679,14 @@ async function renderContent() {
     `;
     const widgetsDiv = document.getElementById('homepage-js-widgets');
 
-    // --- Sequentially load and render all widgets (unfiltered) ---
+    // Load and render all widgets sequentially
     for (let idx = 0; idx < state.widgets.length; idx++) {
       const widget = state.widgets[idx];
       const div = document.createElement('div');
       div.id = `homepage-widget-${idx}`;
       div.className = 'home-page-widget';
       
-      // Create title container for heading and category - now centered
+      // Create title container with heading and category
       const titleContainer = document.createElement('div');
       titleContainer.className = 'widget-title-container';
       
@@ -513,7 +696,7 @@ async function renderContent() {
       nameHeading.className = 'widget-name';
       titleContainer.appendChild(nameHeading);
       
-      // Add category label next to the title
+      // Add category label
       if (widget.category) {
         const categoryLabel = document.createElement('span');
         categoryLabel.className = 'widget-category-label';
@@ -530,27 +713,27 @@ async function renderContent() {
       
       widgetsDiv.appendChild(div);
       
-      // Save reference to the widget container
+      // Store reference to widget container
       const widgetId = widget.src.replace(/[^a-z0-9]/gi, '_');
       state.widgetContainers[widgetId] = widgetContent;
 
-      // Check if we have a cached instance for this widget
+      // Check for cached widget instance
       if (state.cachedWidgetInstances[widgetId]) {
         console.log(`Restoring cached widget: ${widget.name}`);
         
-        // If we've already loaded and cached this widget, just move the container
+        // If widget is already loaded, reuse it
         if (state.cachedWidgetInstances[widgetId].container && 
             state.cachedWidgetInstances[widgetId].container.children.length > 0) {
           
-          // Move all child nodes from cached container to the new container
+          // Move children from cached container to new container
           while (state.cachedWidgetInstances[widgetId].container.firstChild) {
             widgetContent.appendChild(state.cachedWidgetInstances[widgetId].container.firstChild);
           }
           
-          // Update the cached container reference
+          // Update cached container reference
           state.cachedWidgetInstances[widgetId].container = widgetContent;
           
-          // Call widget's resetState function if it exists (for flanking.js specifically)
+          // Reset special widgets if needed
           if (widget.src.includes('flanking.js') && window.resetFlankingWidget) {
             setTimeout(() => {
               try {
@@ -561,21 +744,21 @@ async function renderContent() {
             }, 100);
           }
           
-          continue; // Skip loading the script again
+          continue; // Skip loading script again
         }
       }
 
-      // Dynamically load the JS file and render the widget
+      // Dynamically load widget script
       await new Promise((resolve) => {
         const script = document.createElement('script');
         script.src = widget.src;
         script.onload = () => {
           if (typeof window.renderWidget === 'function') {
             try {
-              // Create and cache the widget instance
+              // Create and cache widget instance
               const widgetInstance = window.renderWidget(widgetContent);
               
-              // Store the rendered widget and its container in our cache
+              // Store in cache
               const widgetId = widget.src.replace(/[^a-z0-9]/gi, '_');
               state.cachedWidgetInstances[widgetId] = {
                 instance: widgetInstance,
@@ -599,7 +782,7 @@ async function renderContent() {
     return;
   }
   
-  // Image Gallery - Pinterest Style
+  // Image Gallery
   if (state.currentType === 'image') {
     // Filter images
     let images = state.items.filter(i => i.type === 'image');
@@ -623,43 +806,41 @@ async function renderContent() {
     c.innerHTML = '<div class="masonry-container"></div>';
     const masonryContainer = document.querySelector('.masonry-container');
     
-    // Add images to the masonry layout
+    // Add images to masonry layout
     for (const image of images) {
       const imageItem = document.createElement('div');
       imageItem.className = 'masonry-item';
       
-      // Image wrapper to contain the image and overlay
+      // Image wrapper with overlay
       const imageWrapper = document.createElement('div');
       imageWrapper.className = 'image-wrapper';
       
-      // Create actual image element
+      // Create image element
       const img = document.createElement('img');
       img.src = image.path;
       img.alt = image.title || 'Image';
-      img.loading = 'lazy'; // Lazy load images
+      img.loading = 'lazy';
       
-      // Create overlay for title and description
+      // Create overlay with title and description
       const overlay = document.createElement('div');
       overlay.className = 'image-overlay';
       
-      // Add title
       const title = document.createElement('h3');
       title.className = 'image-title';
       title.textContent = image.title || 'Untitled';
       
-      // Add description
       const description = document.createElement('p');
       description.className = 'image-description';
       description.textContent = image.description || '';
       
-      // Assemble the components
+      // Assemble components
       overlay.appendChild(title);
       overlay.appendChild(description);
       imageWrapper.appendChild(img);
       imageWrapper.appendChild(overlay);
       imageItem.appendChild(imageWrapper);
       
-      // Add full-size image view when clicking
+      // Add click handler for full-size view
       imageWrapper.addEventListener('click', () => {
         createFullSizeImageView(image);
       });
@@ -667,7 +848,7 @@ async function renderContent() {
       masonryContainer.appendChild(imageItem);
     }
     
-    // Initialize masonry layout after images have loaded
+    // Initialize masonry layout after loading
     let loadedImages = 0;
     const totalImages = images.length;
     
@@ -676,17 +857,15 @@ async function renderContent() {
       if (img.complete) {
         loadedImages++;
         if (loadedImages === totalImages) {
-          setTimeout(adjustMasonryLayout, 50); // Short delay to ensure rendering
+          setTimeout(adjustMasonryLayout, 50);
         }
       } else {
-        // For images still loading, add load and error handlers
+        // For images still loading, add event handlers
         img.addEventListener('load', () => {
           loadedImages++;
-          
-          // When all images are loaded, remove any placeholders if needed
           if (loadedImages === totalImages) {
             setTimeout(() => {
-              // Any final adjustments can go here
+              // Final adjustments after all images load
             }, 50);
           }
         });
@@ -700,13 +879,13 @@ async function renderContent() {
       }
     });
     
-    // Add window resize handler for responsive layout
+    // Handle window resize for responsive layout
     window.addEventListener('resize', debounce(adjustMasonryLayout, 250));
     
     return;
   }
   
-  // Website Gallery - Grid Layout
+  // Website Gallery
   if (state.currentType === 'website') {
     // Filter websites
     let websites = state.items.filter(i => i.type === 'website');
@@ -730,45 +909,76 @@ async function renderContent() {
     c.innerHTML = '<div class="website-gallery"></div>';
     const galleryContainer = document.querySelector('.website-gallery');
     
-    // Add website cards to the gallery
+    // Create website cards
     for (const website of websites) {
       const websiteCard = document.createElement('div');
       websiteCard.className = 'website-card';
       websiteCard.dataset.path = website.path;
       
-      // Create preview section 
+      // Create website preview section
       const previewSection = document.createElement('div');
       previewSection.className = 'website-preview';
       
-      // Website icon/thumbnail
-      const iconContainer = document.createElement('div');
-      iconContainer.className = 'website-icon';
-      
-      // If thumbnail is provided, use it, otherwise use an icon
-      if (website.thumbnail) {
-        const thumbnail = document.createElement('img');
-        thumbnail.src = website.thumbnail;
-        thumbnail.alt = website.title || 'Website';
-        thumbnail.loading = 'lazy';
-        iconContainer.appendChild(thumbnail);
+      // Try to get website thumbnail
+      if (website.path) {
+        const thumbnailUrl = getWebsiteThumbnailUrl(website.path);
+        if (thumbnailUrl) {
+          const thumbnail = document.createElement('img');
+          thumbnail.className = 'website-thumbnail';
+          thumbnail.src = thumbnailUrl;
+          thumbnail.alt = website.title || 'Website preview';
+          thumbnail.loading = 'lazy';
+          previewSection.appendChild(thumbnail);
+        } else {
+          // Default icon fallback
+          previewSection.innerHTML = '<span class="default-website-icon">🌐</span>';
+        }
       } else {
-        // Default icon for websites
-        iconContainer.innerHTML = '<span class="default-website-icon">🌐</span>';
+        // Default icon for websites with no path
+        previewSection.innerHTML = '<span class="default-website-icon">🌐</span>';
       }
       
-      previewSection.appendChild(iconContainer);
       websiteCard.appendChild(previewSection);
       
-      // Website info section
+      // Website information section
       const infoSection = document.createElement('div');
       infoSection.className = 'website-info';
       
-      // Add title
+      // Title container with favicon
+      const titleContainer = document.createElement('div');
+      titleContainer.className = 'website-title-container';
+      
+      // Try to get website favicon
+      if (website.path) {
+        const faviconUrl = getFaviconUrl(website.path);
+        if (faviconUrl) {
+          const favicon = document.createElement('img');
+          favicon.className = 'website-favicon';
+          favicon.src = faviconUrl;
+          favicon.alt = '';
+          favicon.width = 16;
+          favicon.height = 16;
+          favicon.onerror = function() {
+            // Fallback to Google's favicon service
+            this.onerror = null;
+            try {
+              const url = new URL(website.path);
+              this.src = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
+            } catch (e) {
+              // Hide favicon if all fallbacks fail
+              this.style.display = 'none';
+            }
+          };
+          titleContainer.appendChild(favicon);
+        }
+      }
+      
+      // Website title
       const title = document.createElement('h3');
       title.className = 'website-title';
       title.textContent = website.title || 'Untitled';
       
-      // Add category tag if available
+      // Add category tag
       if (website.category) {
         const categoryTag = document.createElement('span');
         categoryTag.className = 'website-category-tag';
@@ -777,7 +987,8 @@ async function renderContent() {
         title.appendChild(categoryTag);
       }
       
-      infoSection.appendChild(title);
+      titleContainer.appendChild(title);
+      infoSection.appendChild(titleContainer);
       
       // Add description
       if (website.description) {
@@ -798,9 +1009,9 @@ async function renderContent() {
       infoSection.appendChild(visitButton);
       websiteCard.appendChild(infoSection);
       
-      // Add click handler for the entire card (except the button)
+      // Add click handler for card
       websiteCard.addEventListener('click', (e) => {
-        // Don't override the button click
+        // Don't override button click
         if (e.target !== visitButton && !visitButton.contains(e.target)) {
           window.open(website.path, '_blank', 'noopener,noreferrer');
         }
@@ -812,12 +1023,13 @@ async function renderContent() {
     return;
   }
   
-  // Empty for PDF/Video section with no selection
+  // Empty content for PDF/Video with no selection
   if (['pdf', 'video'].includes(state.currentType)) {
     c.innerHTML = '';
     return;
   }
-  // Card List
+  
+  // Card List for other content types
   let items = state.items;
   if (state.currentType !== 'Home') {
     items = items.filter(i => i.type === state.currentType);
@@ -836,6 +1048,8 @@ async function renderContent() {
     c.innerHTML = '<p>No content found.</p>';
     return;
   }
+  
+  // Render list of cards
   c.innerHTML = '';
   for (const item of items) {
     const card = document.createElement('div');
@@ -849,7 +1063,31 @@ async function renderContent() {
   }
 }
 
-// Function to create the full-size image view
+/**
+ * Renders media content for different item types
+ * @param {Object} item - The content item to render
+ * @return {string} HTML for the media element
+ */
+function renderMedia(item) {
+  if (item.type === 'video') return '';
+  if (item.type === 'pdf' || item.type === 'rule') {
+    return `<embed src="${escapeHtml(item.path)}" type="application/pdf" height="220px">`;
+  }
+  if (item.type === 'website') {
+    return `
+      <div class="website-link-container">
+        <span class="website-icon">🌐</span>
+        <a class="button website-button" href="${escapeHtml(item.path)}" target="_blank">Visit Website</a>
+      </div>
+    `;
+  }
+  return '';
+}
+
+/**
+ * Creates a full-screen lightbox view for an image
+ * @param {Object} image - The image object to display
+ */
 function createFullSizeImageView(image) {
   // Remove any existing lightbox
   const existingLightbox = document.getElementById('image-lightbox');
@@ -862,13 +1100,13 @@ function createFullSizeImageView(image) {
   lightbox.id = 'image-lightbox';
   lightbox.className = 'image-lightbox';
   
-  // Create the close button
+  // Create close button
   const closeBtn = document.createElement('button');
   closeBtn.className = 'lightbox-close-btn';
   closeBtn.innerHTML = '&times;';
   closeBtn.onclick = () => lightbox.remove();
   
-  // Create the image container
+  // Create image container
   const imgContainer = document.createElement('div');
   imgContainer.className = 'lightbox-image-container';
   
@@ -913,78 +1151,38 @@ function createFullSizeImageView(image) {
   }, { once: true });
 }
 
-// Function to adjust masonry layout (simplified for column-based layout)
+/**
+ * Adjusts the masonry layout for responsive design
+ * Currently handled by CSS grid
+ */
 function adjustMasonryLayout() {
-  // No specific adjustments needed for column-based layout
-  // This is now handled primarily by CSS
+  // CSS Grid handles the layout automatically
 }
 
-// Debounce function to limit how often a function is called
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
+// =============================================================================
+// APPLICATION INITIALIZATION
+// =============================================================================
 
-function renderMedia(item) {
-  if (item.type === 'video') return '';
-  if (item.type === 'pdf' || item.type === 'rule') {
-    return `<embed src="${escapeHtml(item.path)}" type="application/pdf" height="220px">`;
-  }
-  if (item.type === 'website') {
-    // Enhanced website rendering with icon and more styling
-    return `
-      <div class="website-link-container">
-        <span class="website-icon">🌐</span>
-        <a class="button website-button" href="${escapeHtml(item.path)}" target="_blank">Visit Website</a>
-      </div>
-    `;
-  }
-  return '';
-}
-
-// --- Helpers ---
-function capitalize(str) {
-  if (!str) return '';
-  
-  // Handle special abbreviations that should be all uppercase
-  const uppercaseTerms = ['pdf', 'dm', 'gm', 'npc', 'pc'];
-  if (uppercaseTerms.includes(str.toLowerCase())) {
-    return str.toUpperCase();
-  }
-  
-  // Default behavior: capitalize first letter
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function isHomepage() {
-  // Adjust this check if you use routing
-  return location.pathname.endsWith('/') || location.pathname.endsWith('index.html');
-}
-
-// --- Init ---
+/**
+ * Initializes the application on DOM content loaded
+ * Loads data, restores state, and renders UI
+ */
 document.addEventListener('DOMContentLoaded', async () => {
   cacheDom();
   await loadItems();
   
-  // Load saved state if available
+  // Restore saved state if available
   if (window.loadStateFromStorage) {
     window.loadStateFromStorage();
     console.log("State loaded from storage");
     
-    // Attach state change listeners if available
+    // Attach state change listeners
     if (window.attachStateChangeListeners) {
       window.attachStateChangeListeners();
       console.log("State change listeners attached");
     }
     
-    // Apply UI changes after a short delay to ensure DOM is ready
+    // Apply UI state after DOM is ready
     setTimeout(() => {
       if (window.applyStateToUI) {
         window.applyStateToUI();
@@ -996,20 +1194,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderSidebar();
   renderContent();
   
-  // Save initial state if no prior state exists
+  // Save initial state if none exists
   if (window.saveStateToStorage && !localStorage.getItem('ADMResourcesState')) {
     window.saveStateToStorage();
     console.log("Initial state saved");
   }
 });
 
-// Add this helper function for the state persistence module
+/**
+ * Helper function for state persistence module
+ * Provides public API to reinitialize the app
+ */
 window.initializeApp = function() {
   renderSidebar();
   renderContent();
 };
 
-// Add state change handlers to key functions
+/**
+ * Override original render functions to hook state change handlers
+ * Enables integration with state persistence
+ */
 const originalRenderSidebar = renderSidebar;
 renderSidebar = function() {
   originalRenderSidebar();
@@ -1026,8 +1230,6 @@ renderContent = function() {
   }
 };
 
-// When rendering the flanking widget, just call renderWidget as usual.
-// The widget will use your CSS for layout, headings, and paragraphs.
-
-const container = document.getElementById('your-flanking-widget-container');
-window.renderWidget(container);
+// Example of widget rendering
+// const container = document.getElementById('your-flanking-widget-container');
+// window.renderWidget(container);
