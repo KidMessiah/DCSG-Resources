@@ -38,9 +38,11 @@ export const ServiceWorkerManager = {
     }
 
     try {
-      // Register service worker
-      this.registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
+      // Register service worker. Relative path + scope so this resolves
+      // correctly whether the site is served from a domain root or, as on
+      // a GitHub Pages project site, a /RepoName/ subpath.
+      this.registration = await navigator.serviceWorker.register('sw.js', {
+        scope: './'
       });
 
       // Handle registration events

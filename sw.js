@@ -7,60 +7,62 @@ const CACHE_NAME = 'awkwarddm-resources-v1.7.0';
 const STATIC_CACHE_NAME = 'awkwarddm-static-v1.7.0';
 const DYNAMIC_CACHE_NAME = 'awkwarddm-dynamic-v1.7.0';
 
-// Files to cache immediately on install
+// Files to cache immediately on install. Paths are relative - they resolve
+// against this script's own URL, which keeps caching correct whether the
+// site is served from a domain root or a GitHub Pages /RepoName/ subpath.
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/app-modular.js',
-  '/style.css',
-  '/enhanced-styles.css',
-  '/content/homepage.json',
-  '/content/list.json',
+  './',
+  './index.html',
+  './app-modular.js',
+  './style.css',
+  './enhanced-styles.css',
+  './content/homepage.json',
+  './content/list.json',
   // Fonts
-  '/fonts/ibm-plex-serif-600.woff2',
-  '/fonts/ibm-plex-sans-var.woff2',
-  '/fonts/ibm-plex-mono-400.woff2',
-  '/fonts/ibm-plex-mono-500.woff2',
-  '/content/constellations.json',
+  './fonts/ibm-plex-serif-600.woff2',
+  './fonts/ibm-plex-sans-var.woff2',
+  './fonts/ibm-plex-mono-400.woff2',
+  './fonts/ibm-plex-mono-500.woff2',
+  './content/constellations.json',
   // Add widget files
-  '/widgets/constellation.js',
-  '/widgets/flanking.js',
-  '/widgets/flexbonus.js',
-  '/widgets/flexcasting.js',
-  '/widgets/heritage.js',
-  '/widgets/homebrew.js',
-  '/widgets/important.js',  '/widgets/inspiration.js',
-  '/widgets/intelligence.js',
-  '/widgets/resurrection.js',
-  '/widgets/signature.js',
-  '/widgets/skills.js',
-  '/widgets/warlock.js',
+  './widgets/constellation.js',
+  './widgets/flanking.js',
+  './widgets/flexbonus.js',
+  './widgets/flexcasting.js',
+  './widgets/heritage.js',
+  './widgets/homebrew.js',
+  './widgets/important.js',  './widgets/inspiration.js',
+  './widgets/intelligence.js',
+  './widgets/resurrection.js',
+  './widgets/signature.js',
+  './widgets/skills.js',
+  './widgets/warlock.js',
   // Nebula Generator (vendored, see vendor/nebula/NOTICE.md). The
   // Constellation Map loads these 19 modules in dependency order at runtime,
   // so a partial cache is worse than none - if any one is missing offline,
   // the sky can't render at all.
-  '/vendor/nebula/skyGenerator.js',
-  '/vendor/nebula/source/Colour.js',
-  '/vendor/nebula/source/Random.js',
-  '/vendor/nebula/source/Noise.js',
-  '/vendor/nebula/source/ObjectPool.js',
-  '/vendor/nebula/source/Vector3.js',
-  '/vendor/nebula/source/Layer.js',
-  '/vendor/nebula/source/Random/SeedRandom.js',
-  '/vendor/nebula/source/Random/Gaussian.js',
-  '/vendor/nebula/source/Noise/josephg_noisejs.js',
-  '/vendor/nebula/source/Noise/Perlin.js',
-  '/vendor/nebula/source/Noise/Simplex.js',
-  '/vendor/nebula/source/Noise/Blender.js',
-  '/vendor/nebula/source/Noise/Blender/TwoD/FastVoroni.js',
-  '/vendor/nebula/source/LayerPointStars.js',
-  '/vendor/nebula/source/LayerBigStars.js',
-  '/vendor/nebula/source/LayerBrightStar.js',
-  '/vendor/nebula/source/LayerNebula3.js',
-  '/vendor/nebula/source/LayerMilkyWay3.js',
-  '/vendor/nebula/source/LayerVignette.js',
+  './vendor/nebula/skyGenerator.js',
+  './vendor/nebula/source/Colour.js',
+  './vendor/nebula/source/Random.js',
+  './vendor/nebula/source/Noise.js',
+  './vendor/nebula/source/ObjectPool.js',
+  './vendor/nebula/source/Vector3.js',
+  './vendor/nebula/source/Layer.js',
+  './vendor/nebula/source/Random/SeedRandom.js',
+  './vendor/nebula/source/Random/Gaussian.js',
+  './vendor/nebula/source/Noise/josephg_noisejs.js',
+  './vendor/nebula/source/Noise/Perlin.js',
+  './vendor/nebula/source/Noise/Simplex.js',
+  './vendor/nebula/source/Noise/Blender.js',
+  './vendor/nebula/source/Noise/Blender/TwoD/FastVoroni.js',
+  './vendor/nebula/source/LayerPointStars.js',
+  './vendor/nebula/source/LayerBigStars.js',
+  './vendor/nebula/source/LayerBrightStar.js',
+  './vendor/nebula/source/LayerNebula3.js',
+  './vendor/nebula/source/LayerMilkyWay3.js',
+  './vendor/nebula/source/LayerVignette.js',
   // SunCalc (vendored, see vendor/suncalc/NOTICE.md) - the moon's phase.
-  '/vendor/suncalc/suncalc.js'
+  './vendor/suncalc/suncalc.js'
 ];
 
 // Files that should be cached dynamically
@@ -268,7 +270,7 @@ async function staleWhileRevalidate(request) {
 async function getOfflineFallback(request) {
   // Try to return a cached version of the main page
   if (request.mode === 'navigate') {
-    const cachedIndex = await caches.match('/index.html');
+    const cachedIndex = await caches.match('./index.html');
     if (cachedIndex) {
       return cachedIndex;
     }
@@ -318,8 +320,8 @@ function isDynamicAsset(pathname) {
  * @returns {boolean} True if API call
  */
 function isApiCall(pathname) {
-  return pathname.startsWith('/api/') || 
-         pathname.startsWith('/content/') ||
+  return pathname.includes('/api/') ||
+         pathname.includes('/content/') ||
          pathname.endsWith('.json');
 }
 

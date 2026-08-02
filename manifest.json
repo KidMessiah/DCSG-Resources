@@ -2,7 +2,7 @@
   "name": "AwkwardDM Resources",
   "short_name": "DM Resources",
   "description": "Comprehensive D&D resources and tools for Dungeon Masters",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#1c1912",
   "theme_color": "#1c1912",
@@ -11,13 +11,13 @@
   "lang": "en-US",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
