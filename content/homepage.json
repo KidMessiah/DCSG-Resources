@@ -1,6 +1,7 @@
 [
   { "name": "IMPORTANT", "src": "widgets/important.js", "category": "IMPORTANT" },
-  { "name": "Variant Flanking", "src": "widgets/flanking.js", "category": "Small" },
+  { "name": "Flanking Tool", "src": "widgets/flanking.js", "category": "Small" },
+  { "name": "Constellation Map", "src": "widgets/constellation.js", "category": "Small" },
   { "name": "Variant Inspiration", "src": "widgets/inspiration.js", "category": "Small" },
   { "name": "Flexible Casting", "src": "widgets/flexcasting.js", "category": "Large" },
   { "name": "Variant Bonus Action", "src": "widgets/flexbonus.js", "category": "Medium" },

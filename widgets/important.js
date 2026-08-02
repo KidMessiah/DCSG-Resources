@@ -24,87 +24,74 @@ window.renderWidget = function(container) {
       e.preventDefault();
       e.stopPropagation();
       const sectionName = this.getAttribute('data-section');
-      
-      console.log(`Trying to find widget for: ${sectionName}`);
-      
+
       // Try direct DOM search for widgets (instead of relying on state)
       const allWidgets = document.querySelectorAll('.home-page-widget');
-      console.log(`Found ${allWidgets.length} widgets in DOM`);
-      
-      // Map section names to keywords to find in widget headings
+
+      // Map section names to keywords to find in widget headings. Each
+      // keyword should be unique to its target widget's title - broad
+      // words like "spells" match multiple rows (Signature Spells,
+      // Warlock Spells, ...) and whichever comes first in the DOM wins,
+      // which is how this used to land on the wrong rule.
       const keywordMap = {
-        'Versatile Heritage': ['versatile', 'heritage'],
-        'Additional Skills': ['additional', 'skills', 'society', 'occultism'],
-        'Intelligence Modifier': ['intelligence', 'modifier', 'skill proficiencies'],
-        'Warlock Expanded Spells': ['warlock', 'spells'],
-        'Signature Spell': ['signature', 'spell']
+        'Versatile Heritage': ['heritage'],
+        'Additional Skills': ['additional skills'],
+        'Intelligence Modifier': ['intelligence'],
+        'Warlock Expanded Spells': ['warlock'],
+        'Signature Spell': ['signature']
       };
       
       // Find all widget title elements
       const widgetTitles = document.querySelectorAll('.widget-name, .widget-title-container h4, .home-page-widget h3, .home-page-widget h4');
-      console.log(`Found ${widgetTitles.length} widget titles in DOM`);
-      
+
       // Try to find the matching widget by looking for section name in the widget headings
       const keywords = keywordMap[sectionName] || [sectionName.toLowerCase().split(' ')[0]];
-      console.log(`Looking for keywords: ${keywords.join(', ')}`);
-      
+
       let targetWidget = null;
       let targetHeading = null;
       
       // First try to find by title
       for (const title of widgetTitles) {
         const titleText = title.textContent.toLowerCase();
-        console.log(`Checking title: ${titleText}`);
-        
+
         // Check if any keyword is in the title
         if (keywords.some(keyword => titleText.includes(keyword.toLowerCase()))) {
           targetHeading = title;
           targetWidget = findWidgetContainer(title);
-          console.log(`Found matching title: ${titleText}`);
           break;
         }
       }
-      
+
       // If no widget found by title, try to search all widget content
       if (!targetWidget) {
-        console.log(`No title match, searching widget contents`);
         for (const widget of allWidgets) {
           const widgetText = widget.textContent.toLowerCase();
           if (keywords.some(keyword => widgetText.includes(keyword.toLowerCase()))) {
             targetWidget = widget;
-            console.log(`Found widget containing keyword in content`);
             break;
           }
         }
       }
-      
+
       // If we found a widget, scroll to it
       if (targetWidget) {
-        console.log(`Scrolling to widget: ${targetWidget.id || 'unnamed'}`);
         // Ensure the target is not within the current container
         if (!container.contains(targetWidget)) {
           scrollToTarget(targetWidget);
           return;
-        } else {
-          console.log('Widget is inside container, not scrolling');
         }
       } else {
-        console.log('No matching widget found');
-        
         // As a final fallback, try to find any heading with these keywords
         const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6, b');
         for (const heading of allHeadings) {
           if (container.contains(heading)) continue;
-          
+
           const headingText = heading.textContent.toLowerCase();
           if (keywords.some(keyword => headingText.includes(keyword.toLowerCase()))) {
-            console.log(`Found matching heading: ${headingText}`);
             scrollToTarget(heading);
             return;
           }
         }
-        
-        console.log('No matching headings found either');
       }
       
       // Helper function to find the widget container from a title element
@@ -120,31 +107,22 @@ window.renderWidget = function(container) {
       // Helper function to scroll to a target and highlight it
       function scrollToTarget(target) {
         if (!target) return;
-        
-        // Use multiple scroll techniques for best browser support
+
+        // Rule rows are collapsible <details> elements now; open the
+        // target before scrolling so its content is actually visible.
+        if ('open' in target) {
+          target.open = true;
+        }
+
         try {
           // Scroll with better positioning (center of viewport)
           target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          
-          // Also try window.scrollTo with centered positioning
-          const rect = target.getBoundingClientRect();
-          const targetMiddle = rect.top + (rect.height / 2);
-          const viewportMiddle = window.innerHeight / 2;
-          
-          window.scrollTo({
-            top: window.pageYOffset + targetMiddle - viewportMiddle,
-            behavior: 'smooth'
-          });
-          
-          // Visual feedback
+
+          // Visual feedback: toggling this class is all that's needed -
+          // its look (a left-border accent) is defined in style.css, not
+          // set here, so it stays in sync with the rest of the site.
           target.classList.add('highlight');
-          if (!target.style.transition) {
-            target.style.transition = 'background-color 0.3s';
-          }
-          const originalBg = target.style.backgroundColor;
-          target.style.backgroundColor = '#ffff99';
           setTimeout(() => {
-            target.style.backgroundColor = originalBg;
             target.classList.remove('highlight');
           }, 1500);
         } catch (e) {

@@ -1,0 +1,1346 @@
+{
+  "imageWidth": 2000,
+  "imageHeight": 2000,
+  "constellations": [
+    {
+      "name": "Third",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This tower marks the 3rd school: Conjuration.",
+      "stars": [
+        {
+          "x": 415.7,
+          "y": 421.7
+        },
+        {
+          "x": 413.3,
+          "y": 437.7
+        },
+        {
+          "x": 435,
+          "y": 437
+        },
+        {
+          "x": 293.87692307692305,
+          "y": 521.9692307692308
+        },
+        {
+          "x": 311.96923076923076,
+          "y": 495.75384615384615
+        },
+        {
+          "x": 333.38461538461536,
+          "y": 509.4153846153846
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          5,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Dominion",
+      "description": "Also known as \"Eternal Conflict,\" or \"Bloodshed.\" The two crossed swords are representative of the conflict between East and West Negresh; some believe its proximity to Love is a sign of an eventual peace. In lands other than Negresh, it is known as \"The Protector.\"",
+      "stars": [
+        {
+          "x": 752.7,
+          "y": 230
+        },
+        {
+          "x": 780,
+          "y": 339
+        },
+        {
+          "x": 867.1384615384616,
+          "y": 336.9230769230769
+        },
+        {
+          "x": 863.8153846153846,
+          "y": 312.9230769230769
+        },
+        {
+          "x": 840.5538461538462,
+          "y": 340.9846153846154
+        },
+        {
+          "x": 756.3692307692307,
+          "y": 339.13846153846157
+        },
+        {
+          "x": 756.3692307692307,
+          "y": 312.9230769230769
+        },
+        {
+          "x": 867.1384615384616,
+          "y": 228.73846153846154
+        }
+      ],
+      "lines": [
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          7
+        ]
+      ]
+    },
+    {
+      "name": "Love",
+      "description": "Also known as \"The Forever Flame,\" or \"Passion.\" Those who worship Jwalakara believe this constellation to be flares of the Elemental Plane of Fire bursting in the night sky as it tries to reach out to its followers and ignite their passion. Though not all astronomers recognise Jwalakara as their deity, it is common practice to still call the constellation Love due to its religious roots.",
+      "stars": [
+        {
+          "x": 1312,
+          "y": 503.7
+        },
+        {
+          "x": 1291.7,
+          "y": 484
+        },
+        {
+          "x": 1256.7,
+          "y": 484
+        },
+        {
+          "x": 1254,
+          "y": 419.3
+        },
+        {
+          "x": 1304.3,
+          "y": 432.7
+        },
+        {
+          "x": 1292.7,
+          "y": 373.3
+        },
+        {
+          "x": 1351,
+          "y": 360
+        },
+        {
+          "x": 1327,
+          "y": 487.3
+        },
+        {
+          "x": 1342,
+          "y": 495.7
+        },
+        {
+          "x": 1360.3,
+          "y": 427.3
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          7,
+          9
+        ]
+      ]
+    },
+    {
+      "name": "Seventh",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This tower marks the 7th school: Evocation.",
+      "stars": [
+        {
+          "x": 1701.7,
+          "y": 538.3
+        },
+        {
+          "x": 1705.7,
+          "y": 576.7
+        },
+        {
+          "x": 1757.9846153846154,
+          "y": 688.2461538461539
+        },
+        {
+          "x": 1760.6615384615384,
+          "y": 669.0615384615385
+        },
+        {
+          "x": 1778.9538461538461,
+          "y": 675.3076923076924
+        },
+        {
+          "x": 1725.4153846153847,
+          "y": 557.0769230769231
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "First and Second",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This pair marks the 1st and 2nd schools: Abjuration and Transmutation.",
+      "stars": [
+        {
+          "x": 702.7,
+          "y": 690.7
+        },
+        {
+          "x": 696.7,
+          "y": 719.3
+        },
+        {
+          "x": 668,
+          "y": 711
+        },
+        {
+          "x": 584.7,
+          "y": 803.7
+        },
+        {
+          "x": 607.3,
+          "y": 795.7
+        },
+        {
+          "x": 564.3,
+          "y": 766
+        },
+        {
+          "x": 556.7,
+          "y": 797.3
+        },
+        {
+          "x": 469,
+          "y": 873.3
+        },
+        {
+          "x": 473.3,
+          "y": 892.7
+        },
+        {
+          "x": 531.3846153846154,
+          "y": 785.2307692307693
+        },
+        {
+          "x": 446.0,
+          "y": 881.2307692307693
+        },
+        {
+          "x": 609.8461538461538,
+          "y": 820.3076923076924
+        }
+      ],
+      "lines": [
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          7,
+          10
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          11,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "Ninth",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This is the odd tower itself: the 9th school, Dunamancy.",
+      "stars": [
+        {
+          "x": 1001.7,
+          "y": 679.3
+        },
+        {
+          "x": 986,
+          "y": 707.3
+        },
+        {
+          "x": 980.7,
+          "y": 724
+        },
+        {
+          "x": 980,
+          "y": 753.7
+        },
+        {
+          "x": 1021.7,
+          "y": 712.7
+        },
+        {
+          "x": 1012.7,
+          "y": 747.3
+        },
+        {
+          "x": 998,
+          "y": 870
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "name": "Hope",
+      "description": "Also known as \"The Bound Ring,\" or \"Connection.\" This gets its name from looking like two forces coming together. Ancient astronomers believed it was a sign that all great things can be achieved with co-operation.",
+      "stars": [
+        {
+          "x": 282.7,
+          "y": 855.3
+        },
+        {
+          "x": 280,
+          "y": 896.7
+        },
+        {
+          "x": 333.3,
+          "y": 942.7
+        },
+        {
+          "x": 285,
+          "y": 986
+        },
+        {
+          "x": 231,
+          "y": 946.7
+        },
+        {
+          "x": 283.3,
+          "y": 1029.3
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          3,
+          5
+        ]
+      ]
+    },
+    {
+      "name": "Charity",
+      "description": "Also known as \"The Giver's Vessel,\" or \"The Bountiful Chalice.\" Charity, often depicted as a vase in the celestial canvas, is a symbol of generosity and compassion across many cultures. In regions where the art of giving is cherished, it is known as \"The Giver's Vessel,\" a tribute to those who extend their hands to others in need. In some agricultural societies, people call it \"The Bountiful Chalice,\" believing its appearance brings forth plentiful harvests and blessings.",
+      "stars": [
+        {
+          "x": 1619,
+          "y": 920.7
+        },
+        {
+          "x": 1659.7,
+          "y": 987.7
+        },
+        {
+          "x": 1666.7,
+          "y": 1019
+        },
+        {
+          "x": 1639,
+          "y": 1057.3
+        },
+        {
+          "x": 1682,
+          "y": 1076.7
+        },
+        {
+          "x": 1712.7,
+          "y": 1076.7
+        },
+        {
+          "x": 1751.3,
+          "y": 1057.3
+        },
+        {
+          "x": 1721.7,
+          "y": 1019
+        },
+        {
+          "x": 1733,
+          "y": 985.3
+        },
+        {
+          "x": 1775.7,
+          "y": 920.7
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          8,
+          9
+        ]
+      ]
+    },
+    {
+      "name": "Fifth",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This tower marks the 5th school: Enchantment.",
+      "stars": [
+        {
+          "x": 673.3,
+          "y": 1016
+        },
+        {
+          "x": 660.7,
+          "y": 1052.7
+        },
+        {
+          "x": 685.3,
+          "y": 1042.7
+        },
+        {
+          "x": 660.7,
+          "y": 1178
+        },
+        {
+          "x": 673.3,
+          "y": 1162.3
+        },
+        {
+          "x": 686,
+          "y": 1178
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "name": "Eighth",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This tower marks the 8th school: Necromancy.",
+      "stars": [
+        {
+          "x": 1157.7,
+          "y": 949.7
+        },
+        {
+          "x": 1145.7,
+          "y": 987
+        },
+        {
+          "x": 1172.3,
+          "y": 975.3
+        },
+        {
+          "x": 1147.4461538461537,
+          "y": 1112.4307692307693
+        },
+        {
+          "x": 1158.7,
+          "y": 1091.3
+        },
+        {
+          "x": 1172.8615384615384,
+          "y": 1108.123076923077
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "name": "Legion",
+      "description": "Also known as \"The Cavalry\" or \"Sisters.\" Astronomers of old originally called this constellation \"The Cavalry\" for its appearance of two horses reared up in defence. Later the name shifted to Legion, written about in a play about the Daughters of King Winlon with the line: \"Sister, in the vast expanse above, we shall meet once more; our spirits entwined, eternal, amidst the cosmic Legion's resplendent embrace.\"",
+      "stars": [
+        {
+          "x": 929,
+          "y": 972.7
+        },
+        {
+          "x": 891.0153846153846,
+          "y": 1085.8615384615384
+        },
+        {
+          "x": 861.2923076923076,
+          "y": 1067.1076923076923
+        },
+        {
+          "x": 889.9538461538461,
+          "y": 1053.6615384615384
+        },
+        {
+          "x": 877.9230769230769,
+          "y": 999.5230769230769
+        },
+        {
+          "x": 938.7846153846153,
+          "y": 1023.2307692307693
+        },
+        {
+          "x": 909.4153846153846,
+          "y": 1039.8615384615384
+        },
+        {
+          "x": 969.2153846153847,
+          "y": 1019.6923076923077
+        },
+        {
+          "x": 1005.3076923076923,
+          "y": 1013.3230769230769
+        },
+        {
+          "x": 989.3846153846154,
+          "y": 1045.876923076923
+        }
+      ],
+      "lines": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          8,
+          9
+        ]
+      ]
+    },
+    {
+      "name": "Surety",
+      "description": "Also known as \"The Guardian,\" or \"The Lighthouse.\" In many coastal regions, this constellation is called \"The Lighthouse\" for its guiding presence, leading sailors safely to shore. In the land of Tricath, people know it as \"The Guardian,\" as it appears prominently during the season of harvest, symbolizing protection and abundance for their crops and communities.",
+      "stars": [
+        {
+          "x": 1459.9384615384615,
+          "y": 1010.8923076923077
+        },
+        {
+          "x": 1430.6461538461538,
+          "y": 1032.8615384615384
+        },
+        {
+          "x": 1394.0307692307692,
+          "y": 1045.7846153846153
+        },
+        {
+          "x": 1371.6307692307691,
+          "y": 1031.5692307692307
+        },
+        {
+          "x": 1316.4923076923078,
+          "y": 1008.7384615384615
+        },
+        {
+          "x": 1336.7384615384615,
+          "y": 1032.8615384615384
+        },
+        {
+          "x": 1377.6615384615384,
+          "y": 1069.0461538461539
+        },
+        {
+          "x": 1345.7846153846153,
+          "y": 1085.4153846153845
+        },
+        {
+          "x": 1319.076923076923,
+          "y": 1142.7076923076922
+        },
+        {
+          "x": 1355.6923076923076,
+          "y": 1116.4307692307693
+        },
+        {
+          "x": 1409.9692307692308,
+          "y": 1102.2153846153847
+        },
+        {
+          "x": 1461.6615384615384,
+          "y": 1145.7230769230769
+        },
+        {
+          "x": 1419.0153846153846,
+          "y": 1070.7692307692307
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          6,
+          10
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          12,
+          1
+        ],
+        [
+          12,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Fourth",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This tower marks the 4th school: Divination.",
+      "stars": [
+        {
+          "x": 314,
+          "y": 1194.7
+        },
+        {
+          "x": 310.7,
+          "y": 1215
+        },
+        {
+          "x": 333.7,
+          "y": 1213.3
+        },
+        {
+          "x": 210,
+          "y": 1277.3
+        },
+        {
+          "x": 236,
+          "y": 1289
+        },
+        {
+          "x": 198.03076923076924,
+          "y": 1303.6461538461538
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "Sixth",
+      "description": "One of Caelia’s Boughs of Arcana (also called \"The Nine Pillars of Arcana,\" \"The Watchful Ones,\" or \"The Divine Wall\"). When first mapped, astronomers found only eight, one for each school of Arcana. A ninth tower was found later, slightly different in shape from the rest - some believe it to be the first sign of Dunamancy. This tower marks the 6th school: Illusion.",
+      "stars": [
+        {
+          "x": 1696.3,
+          "y": 1334
+        },
+        {
+          "x": 1685,
+          "y": 1371.3
+        },
+        {
+          "x": 1709,
+          "y": 1358.3
+        },
+        {
+          "x": 1683.7,
+          "y": 1493.7
+        },
+        {
+          "x": 1696.3,
+          "y": 1474.3
+        },
+        {
+          "x": 1709,
+          "y": 1491
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "name": "Might",
+      "description": "Also known as \"The Arm of Anemoneus,\" \"Storm,\" or \"Finality.\" Some who worship the storm gods use this constellation as their guiding light, believing its shape will connect them to their gods and grant them safe travels. Others, less pious, call it by its primary name Might, as nothing in the mortal realm is more powerful than a storm.",
+      "stars": [
+        {
+          "x": 525,
+          "y": 1382.3
+        },
+        {
+          "x": 488.3,
+          "y": 1460.3
+        },
+        {
+          "x": 537.3,
+          "y": 1449.7
+        },
+        {
+          "x": 508.2,
+          "y": 1529.6
+        },
+        {
+          "x": 546.7,
+          "y": 1510.3
+        },
+        {
+          "x": 516,
+          "y": 1588
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "name": "Need",
+      "description": "Also known as \"The Beggar's Bowl,\" or \"The Cradle of Want.\" Need, resembling a bowl in the vast night sky, serves as a reminder of the struggles faced by many and the importance of empathy and compassion. In areas where poverty and hardship are all too familiar, it is known as \"The Beggar's Bowl.\" In other regions, people call it \"The Cradle of Want,\" an embodiment of the shared human experience of desire and the quest for fulfillment.",
+      "stars": [
+        {
+          "x": 1488.7,
+          "y": 1298.7
+        },
+        {
+          "x": 1499,
+          "y": 1321
+        },
+        {
+          "x": 1511.3,
+          "y": 1338.7
+        },
+        {
+          "x": 1498,
+          "y": 1377
+        },
+        {
+          "x": 1462.7,
+          "y": 1421.3
+        },
+        {
+          "x": 1413.3,
+          "y": 1437.7
+        },
+        {
+          "x": 1395,
+          "y": 1421.3
+        },
+        {
+          "x": 1376,
+          "y": 1416.3
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    {
+      "name": "Courage",
+      "description": "Also known as \"Rise,\" or \"Dawn.\" It gets its root names from looking like a rising sun, but Negreshians came to know it as Courage due to the Elven proverb: \"We must rise again, the sun only shines on the backs of the courageous.\"",
+      "stars": [
+        {
+          "x": 1135.9538461538461,
+          "y": 1424.5846153846155
+        },
+        {
+          "x": 1154.3,
+          "y": 1346.3
+        },
+        {
+          "x": 1182.7,
+          "y": 1379.3
+        },
+        {
+          "x": 1202.7,
+          "y": 1423
+        },
+        {
+          "x": 1176,
+          "y": 1462.3
+        },
+        {
+          "x": 1141,
+          "y": 1496
+        },
+        {
+          "x": 1098.3,
+          "y": 1486
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          6,
+          1
+        ]
+      ]
+    },
+    {
+      "name": "Suffering",
+      "description": "Also known as \"Warbringer,\" or \"The Sun.\" In most countries outside of Negresh, this constellation is named The Sun, for its obvious resemblance. The people of Negresh have come to know it as Suffering, as it is only ever visible on the anniversary of the Divergence.",
+      "stars": [
+        {
+          "x": 1348,
+          "y": 1689
+        },
+        {
+          "x": 1348,
+          "y": 1612.7
+        },
+        {
+          "x": 1398,
+          "y": 1642
+        },
+        {
+          "x": 1419,
+          "y": 1689
+        },
+        {
+          "x": 1400,
+          "y": 1737.3
+        },
+        {
+          "x": 1351,
+          "y": 1757.3
+        },
+        {
+          "x": 1303.3,
+          "y": 1730.7
+        },
+        {
+          "x": 1273,
+          "y": 1685.7
+        },
+        {
+          "x": 1293.3,
+          "y": 1635.7
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "Community",
+      "description": "Also known as \"The Ring of Wrentlam,\" \"The Moon,\" or \"Embrace.\" The Moon Elves of the Wrentlam Steppe originally named this constellation, as it can be found encircling the moon exactly on Midsummer's Midnight. They believe it holds immense power, and some harness it to great effect.",
+      "stars": [
+        {
+          "x": 925.7,
+          "y": 1739
+        },
+        {
+          "x": 970.3,
+          "y": 1755
+        },
+        {
+          "x": 991,
+          "y": 1800.7
+        },
+        {
+          "x": 965.3,
+          "y": 1852.3
+        },
+        {
+          "x": 924.7,
+          "y": 1864.7
+        },
+        {
+          "x": 877,
+          "y": 1851.3
+        },
+        {
+          "x": 849,
+          "y": 1801.3
+        },
+        {
+          "x": 876,
+          "y": 1753.3
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          0
+        ]
+      ]
+    }
+  ]
+}

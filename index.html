@@ -2,21 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Comprehensive D&D resources and tools for Dungeon Masters">
+  <meta name="theme-color" content="#1c1912">
   <title>AwkwardDM Resources</title>
+  <!-- Applied before first paint so switching to light theme doesn't flash dark first -->
+  <script>
+    (function() {
+      try {
+        if (localStorage.getItem('theme') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="enhanced-styles.css">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 </head>
 <body>
+  <!-- Service Worker Status -->
+  <div id="sw-notification" class="sw-notification hidden" role="alert" aria-live="polite">
+    <span id="sw-message"></span>
+    <button id="sw-dismiss" class="sw-dismiss" aria-label="Dismiss notification">×</button>
+  </div>
+  
+  <!-- Network Status -->
+  <div id="network-status" class="network-status hidden" role="status" aria-live="polite">
+    <span id="network-message">You are currently offline</span>
+  </div>
+  
+  <!-- Loading Indicator -->
+  <div id="loading-overlay" class="loading-overlay hidden" aria-hidden="true">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <span class="loading-text">Loading...</span>
+    </div>
+  </div>
+  
+  <!-- Main Application Container -->
   <div id="container">
     <aside id="sidebar">
       <h1>AwkwardDM Resources</h1>
-      <nav id="categories"></nav>
+      <nav id="categories" role="navigation" aria-label="Resource categories"></nav>
     </aside>
-    <main id="content">
+    <main id="content" role="main">
       <!-- Dynamic content goes here -->
     </main>
   </div>
-  <script src="statePersistence.js"></script>
-  <script src="app.js"></script>
-  <script src='https://cdn.jsdelivr.net/npm/pixi.js@7.x/dist/pixi.min.js'></script>
+  
+  <!-- Error Boundary -->
+  <div id="error-boundary" class="error-boundary hidden" role="alert">
+    <div class="error-content">
+      <h2>Something went wrong</h2>
+      <p id="error-message">An unexpected error occurred. Please try refreshing the page.</p>
+      <div class="error-actions">
+        <button id="error-retry" class="btn-primary">Try Again</button>
+        <button id="error-reload" class="btn-secondary">Reload Page</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modular Application -->
+  <script type="module" src="app-modular.js"></script>
 </body>
 </html>
